@@ -3,6 +3,7 @@ import { DinerApp } from "@/components/DinerApp";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { CartBar } from "@/components/cart/CartBar";
 import { ServiceProvider } from "@/components/service/ServiceProvider";
+import { QrWidget } from "@/components/QrWidget";
 import { getMenuForRestaurant, getRestaurantBySlug } from "@/lib/restaurants";
 
 type RestaurantPageProps = {
@@ -24,6 +25,7 @@ export default async function RestaurantPage({ params, searchParams }: Restauran
       <ServiceProvider slug={restaurant.slug} tableLabel={tableLabel} shortName={restaurant.shortName}>
         <DinerApp restaurant={{ ...restaurant, tableLabel }} menu={getMenuForRestaurant(restaurant.id)} />
         <CartBar slug={restaurant.slug} tableLabel={tableLabel} />
+        <QrWidget />
       </ServiceProvider>
     </CartProvider>
   );

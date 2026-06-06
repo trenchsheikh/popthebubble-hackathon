@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { BellRing, Check, ConciergeBell, X } from "lucide-react";
+import { BellRing, Check, X } from "lucide-react";
 import type { ServiceCall } from "@/lib/service/types";
 
 type ServiceContextValue = {
@@ -41,13 +41,6 @@ export function ServiceProvider({
   return (
     <ServiceContext.Provider value={value}>
       {children}
-
-      {!open && (
-        <button className="service-fab" onClick={() => openDock()} aria-label="Call a waiter">
-          <ConciergeBell size={18} />
-          <span>Service</span>
-        </button>
-      )}
 
       {open && (
         <ServiceDock slug={slug} tableLabel={tableLabel} shortName={shortName} onClose={() => setOpen(false)} />
