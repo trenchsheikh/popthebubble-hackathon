@@ -1333,6 +1333,25 @@ input:focus-visible {
   gap: 1rem;
   padding: 0.5rem 0.25rem 1.25rem;
   scroll-behavior: smooth;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+}
+
+.chat-thread::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-thread::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-thread::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 999px;
+}
+
+.chat-thread::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 72%, transparent);
 }
 
 .chat-welcome {
