@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { BellRing, Check, Minus, Plus, ShoppingBag, Sparkles, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import { getNudges } from "@/lib/nudges";
@@ -36,15 +36,10 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Auto-open the cart pop-up whenever an item is added (count goes up).
-  const prevCount = useRef(cart.count);
+  // The basket stays collapsed by default — it only opens when the diner taps
+  // the cart icon. We just auto-close it if the cart becomes empty.
   useEffect(() => {
-    if (cart.count > prevCount.current) {
-      setProfile(readProfile());
-      setOpen(true);
-    }
     if (cart.count === 0 && submit.status !== "done") setOpen(false);
-    prevCount.current = cart.count;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart.count]);
 

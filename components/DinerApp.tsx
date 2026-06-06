@@ -603,9 +603,13 @@ function MenuExperience({
           <p className="eyebrow">{t("Full menu")}</p>
           <h2>{t("Browse by section")}</h2>
         </div>
-        <button className={`filter-toggle ${hideUnsafe ? "active" : ""}`} onClick={() => setHideUnsafe(!hideUnsafe)}>
+        <button
+          className={`filter-toggle ${hideUnsafe ? "active" : ""}`}
+          onClick={() => setHideUnsafe(!hideUnsafe)}
+          title={t("Hide dishes that clash with your saved diet and allergies")}
+        >
           <SlidersHorizontal size={16} />
-          {t("Hide conflicts")}
+          {hideUnsafe ? t("Show all dishes") : t("Hide unsafe dishes")}
         </button>
       </div>
 
