@@ -29,12 +29,16 @@ export function EventDiscovery({
   restaurant,
   dinerId,
   memoryFacts,
-  onClose
+  onClose,
+  embedded = false
 }: {
   restaurant: Restaurant;
   dinerId: string;
   memoryFacts: MemoryFact[];
-  onClose: () => void;
+  onClose?: () => void;
+  // When embedded (e.g. as the Events tab) we drop the dialog/overlay chrome
+  // and render the flow inline.
+  embedded?: boolean;
 }) {
   const [phase, setPhase] = useState<Phase>("intent");
   const [events, setEvents] = useState<EventOption[]>([]);
@@ -94,6 +98,43 @@ export function EventDiscovery({
     }
   }
 
+  const body = (
+    <div className="events-overlay-body">
+      {phase === "intent" && <IntentStep initialVibes={initialVibes} onSubmit={handleIntent} busy={false} />}
+
+      {phase === "loading" && (
+        <div className="event-loading">
+          <Loader2 className="spin" size={30} />
+          <p>Finding tonight&apos;s best nearby…</p>
+        </div>
+      )}
+
+      {phase === "results" && (
+        <EventResults
+          events={events}
+          busyId={busyId}
+          referredIds={referredIds}
+          onGetTickets={handleGetTickets}
+          onBack={() => setPhase("intent")}
+        />
+      )}
+
+      {phase === "error" && (
+        <div className="event-empty">
+          <h3>Something went wrong</h3>
+          <p>{error}</p>
+          <button className="primary-button" onClick={() => setPhase("intent")}>
+            Try again
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  if (embedded) {
+    return <div className="events-tab">{body}</div>;
+  }
+
   return (
     <div className="events-overlay" role="dialog" aria-modal aria-label="Plans after dinner">
       <header className="events-overlay-head">
@@ -106,36 +147,7 @@ export function EventDiscovery({
         </button>
       </header>
 
-      <div className="events-overlay-body">
-        {phase === "intent" && <IntentStep initialVibes={initialVibes} onSubmit={handleIntent} busy={false} />}
-
-        {phase === "loading" && (
-          <div className="event-loading">
-            <Loader2 className="spin" size={30} />
-            <p>Finding tonight&apos;s best nearby…</p>
-          </div>
-        )}
-
-        {phase === "results" && (
-          <EventResults
-            events={events}
-            busyId={busyId}
-            referredIds={referredIds}
-            onGetTickets={handleGetTickets}
-            onBack={() => setPhase("intent")}
-          />
-        )}
-
-        {phase === "error" && (
-          <div className="event-empty">
-            <h3>Something went wrong</h3>
-            <p>{error}</p>
-            <button className="primary-button" onClick={() => setPhase("intent")}>
-              Try again
-            </button>
-          </div>
-        )}
-      </div>
+      {body}
     </div>
   );
 }

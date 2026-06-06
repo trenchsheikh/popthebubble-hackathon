@@ -1263,7 +1263,7 @@ input:focus-visible {
   top: max(0.5rem, env(safe-area-inset-top));
   z-index: 16;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 0.25rem;
   margin-bottom: 1.1rem;
   padding: 0.3rem;
@@ -1282,7 +1282,7 @@ input:focus-visible {
   top: 0.3rem;
   bottom: 0.3rem;
   left: 0.3rem;
-  width: calc(50% - 0.3rem);
+  width: calc(33.333% - 0.3rem);
   border-radius: 999px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   box-shadow: 0 0.4rem 1rem color-mix(in srgb, var(--accent) 45%, transparent);
@@ -1290,7 +1290,11 @@ input:focus-visible {
 }
 
 .menu-tabs-indicator[data-tab="chat"] {
-  transform: translateX(100%);
+  transform: translateX(calc(100% + 0.25rem));
+}
+
+.menu-tabs-indicator[data-tab="events"] {
+  transform: translateX(calc(200% + 0.5rem));
 }
 
 .menu-tab {
@@ -3567,6 +3571,31 @@ input:focus-visible {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 1.1rem 1.1rem 6rem;
+}
+
+/* Events rendered inline as the third menu tab (no overlay chrome). */
+.events-tab {
+  width: min(100%, 46rem);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - 9rem);
+  min-height: 24rem;
+}
+
+.events-tab .events-overlay-body {
+  padding: 0.25rem 0.25rem 6rem;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+}
+
+.events-tab .events-overlay-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.events-tab .events-overlay-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 999px;
 }
 
 .intent-step {

@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  Ticket,
   UtensilsCrossed,
   UserRoundCheck,
   X
@@ -33,7 +34,7 @@ import { recordEvent } from "@/lib/analytics-client";
 import type { DinerProfile, MemoryFact, MenuItem, Recommendation, Restaurant } from "@/lib/types";
 
 type Stage = "welcome" | "onboarding" | "menu";
-type MenuTab = "menu" | "chat";
+type MenuTab = "menu" | "chat" | "events";
 
 const profileStorageKey = (slug: string) => `taste-passport:${slug}:profile`;
 const dinerStorageKey = "taste-passport:diner-id";
@@ -85,7 +86,6 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
   const [hideUnsafe, setHideUnsafe] = useState(false);
   const [selected, setSelected] = useState<MenuItem | null>(null);
   const [tab, setTab] = useState<MenuTab>("menu");
-  const [showEvents, setShowEvents] = useState(false);
 
   useEffect(() => {
     const existingDinerId = window.localStorage.getItem(dinerStorageKey);
@@ -93,17 +93,10 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
     window.localStorage.setItem(dinerStorageKey, nextDinerId);
     setDinerId(nextDinerId);
 
+    // Demo: every fresh load starts at the welcome/onboarding home so we can
+    // show the customer-join flow — we don't auto-resume a returning session
+    // straight into the menu. savedProfile still informs the scan analytics.
     const savedProfile = window.localStorage.getItem(profileStorageKey(restaurant.slug));
-    if (savedProfile) {
-      try {
-        const parsed = JSON.parse(savedProfile) as DinerProfile;
-        setProfile({ ...defaultProfile, ...parsed });
-        setReturning(true);
-        setStage("menu");
-      } catch {
-        window.localStorage.removeItem(profileStorageKey(restaurant.slug));
-      }
-    }
 
     // Diagnostics: record the QR scan (who, where, returning) — best-effort.
     recordEvent({
@@ -189,10 +182,13 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
               if (next === "chat" && tab !== "chat") {
                 recordEvent({ type: "open_chat", dinerId, restaurantId: restaurant.id });
               }
+              if (next === "events" && tab !== "events") {
+                recordEvent({ type: "open_events", dinerId, restaurantId: restaurant.id });
+              }
               setTab(next);
             }}
           />
-          {tab === "menu" ? (
+          {tab === "menu" && (
             <MenuExperience
               restaurant={restaurant}
               menu={menu}
@@ -207,10 +203,11 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
               resetProfile={resetProfile}
               onOpenEvents={() => {
                 recordEvent({ type: "open_events", dinerId, restaurantId: restaurant.id });
-                setShowEvents(true);
+                setTab("events");
               }}
             />
-          ) : (
+          )}
+          {tab === "chat" && (
             <ChatPanel
               restaurant={restaurant}
               menu={menu}
@@ -218,6 +215,14 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
               memoryFacts={memoryFacts}
               recommendedItems={recommendedItems}
               onOpenDish={setSelected}
+            />
+          )}
+          {tab === "events" && (
+            <EventDiscovery
+              restaurant={restaurant}
+              dinerId={dinerId}
+              memoryFacts={memoryFacts}
+              embedded
             />
           )}
         </section>
@@ -236,21 +241,13 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
         />
       )}
 
-      {showEvents && (
-        <EventDiscovery
-          restaurant={restaurant}
-          dinerId={dinerId}
-          memoryFacts={memoryFacts}
-          onClose={() => setShowEvents(false)}
-        />
-      )}
     </main>
   );
 }
 
 function MenuTabs({ tab, onTab }: { tab: MenuTab; onTab: (tab: MenuTab) => void }) {
   return (
-    <div className="menu-tabs" role="tablist" aria-label="Menu and chat">
+    <div className="menu-tabs" role="tablist" aria-label="Menu, chat and events">
       <span className="menu-tabs-indicator" data-tab={tab} aria-hidden />
       <button
         role="tab"
@@ -269,6 +266,15 @@ function MenuTabs({ tab, onTab }: { tab: MenuTab; onTab: (tab: MenuTab) => void 
       >
         <Sparkles size={16} />
         Chat
+      </button>
+      <button
+        role="tab"
+        aria-selected={tab === "events"}
+        className={`menu-tab ${tab === "events" ? "active" : ""}`}
+        onClick={() => onTab("events")}
+      >
+        <Ticket size={16} />
+        Events
       </button>
     </div>
   );
