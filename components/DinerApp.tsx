@@ -286,10 +286,6 @@ function Welcome({ restaurant, dinerId, onStart }: { restaurant: Restaurant; din
       <div className="welcome-bg" aria-hidden>
         <img src={ambiance.hero} alt="" draggable={false} />
       </div>
-      <div className="session-pill">
-        <span className="live-dot" />
-        Scan complete · {restaurant.tableLabel}
-      </div>
       <div className="welcome-hero">
         <p className="eyebrow">{restaurant.cuisine}</p>
         <h1>{restaurant.name}</h1>
