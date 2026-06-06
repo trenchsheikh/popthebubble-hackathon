@@ -8,7 +8,9 @@ export type AnalyticsEventType =
   | "chat_ask"
   | "dish_view"
   | "order_placed"
-  | "service_call";
+  | "service_call"
+  | "open_events" // diner opened the post-dinner event discovery flow
+  | "book_event"; // diner booked a recommended event
 
 export type AnalyticsEventInput = {
   type: AnalyticsEventType;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRestaurantBySlug } from "@/lib/restaurants";
+import { upsertSession } from "@/lib/sessions/store";
 
 function stableId(input: string) {
   let hash = 0;
@@ -29,6 +30,10 @@ export async function POST(request: Request) {
   const token = body.deviceToken || `anonymous-${Date.now()}`;
   const dinerId = `diner_${stableId(token)}`;
   const runId = `${restaurant.id}:${dinerId}:${Date.now()}`;
+  const tableLabel = body.table ? `Table ${body.table}` : restaurant.tableLabel;
+
+  // Record live presence so the restaurant dashboard can show who's here now.
+  upsertSession({ dinerId, slug: restaurant.slug, tableLabel, returning: Boolean(body.deviceToken) });
 
   return NextResponse.json({
     dinerId,
@@ -36,6 +41,6 @@ export async function POST(request: Request) {
     returning: Boolean(body.deviceToken),
     memory: [],
     restaurantId: restaurant.id,
-    tableLabel: body.table ? `Table ${body.table}` : restaurant.tableLabel
+    tableLabel
   });
 }

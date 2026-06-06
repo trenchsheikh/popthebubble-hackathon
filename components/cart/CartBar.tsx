@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Minus, Plus, ShieldCheck, ShoppingBag, Sparkles, X } from "lucide-react";
+import { BellRing, Check, Minus, Plus, ShoppingBag, Sparkles, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import { getNudges } from "@/lib/nudges";
 import type { DinerProfile } from "@/lib/types";
@@ -10,12 +10,11 @@ function formatPrice(value: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(value);
 }
 
-type SubmitState = { status: "idle" | "sending" | "done" | "error"; detail?: string; channel?: string };
+type SubmitState = { status: "idle" | "sending" | "done" | "error"; detail?: string };
 
 export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string }) {
   const cart = useCart();
   const [open, setOpen] = useState(false);
-  const [shareSoftPrefs, setShareSoftPrefs] = useState(false);
   const [note, setNote] = useState("");
   const [submit, setSubmit] = useState<SubmitState>({ status: "idle" });
   const [profile, setProfile] = useState<DinerProfile | null>(null);
@@ -36,38 +35,37 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
 
   if (cart.count === 0 && submit.status !== "done") return null;
 
-  async function placeOrder() {
-    const profile = readProfile();
+  // The kitchen no longer takes orders through the app — the diner builds a
+  // basket, then calls the waiter over to place it. We send the basket along on
+  // a "ready to order" service call so the waiter knows what the table wants.
+  async function callWaiterToOrder() {
     const dinerId = window.localStorage.getItem("taste-passport:diner-id") ?? "anonymous";
-    if (!profile) {
-      setSubmit({ status: "error", detail: "Set up your taste profile first so the kitchen gets your allergies." });
-      return;
-    }
     setSubmit({ status: "sending" });
     try {
-      const response = await fetch("/api/orders", {
+      const response = await fetch("/api/service-call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug,
           tableLabel,
           dinerId,
-          profile,
-          shareSoftPrefs,
-          note: note.trim() || undefined,
-          items: cart.lines.map((line) => ({ id: line.dish.id, qty: line.qty, requests: line.requests }))
+          kind: "order",
+          reason: note.trim() ? `Ready to order — ${note.trim()}` : "Ready to order",
+          items: cart.lines.map((line) => ({
+            id: line.dish.id,
+            name: line.dish.name,
+            qty: line.qty,
+            price: line.dish.price,
+            requests: line.requests
+          }))
         })
       });
-      const data = (await response.json()) as { ok: boolean; orderId?: string; channel?: string; detail?: string; error?: string };
+      const data = (await response.json()) as { ok: boolean; error?: string };
       if (!response.ok || !data.ok) {
-        setSubmit({ status: "error", detail: data.error ?? "Could not send the order." });
+        setSubmit({ status: "error", detail: data.error ?? "Could not reach the team." });
         return;
       }
-      if (data.orderId) {
-        window.localStorage.setItem(`taste-passport:${slug}:active-order`, data.orderId);
-        window.dispatchEvent(new Event("active-order-changed"));
-      }
-      setSubmit({ status: "done", channel: data.channel, detail: data.detail });
+      setSubmit({ status: "done" });
       cart.clear();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Network error";
@@ -86,32 +84,28 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
         <button className="cart-fab" onClick={() => setOpen(true)}>
           <ShoppingBag size={18} />
           <span className="cart-fab-count">{cart.count}</span>
-          <span>Review order</span>
+          <span>Review basket</span>
           <strong>{formatPrice(cart.total)}</strong>
         </button>
       )}
 
       {open && (
-        <div className="overlay cart-overlay" role="dialog" aria-modal="true" aria-label="Your order">
+        <div className="overlay cart-overlay" role="dialog" aria-modal="true" aria-label="Your basket">
           <div className="detail-sheet cart-sheet">
-            <button className="icon-button close-button" onClick={closeSheet} aria-label="Close order">
+            <button className="icon-button close-button" onClick={closeSheet} aria-label="Close basket">
               <X size={18} />
             </button>
 
             {submit.status === "done" ? (
               <div className="cart-done">
                 <span className="cart-done-icon"><Check size={26} /></span>
-                <h2>Sent to the kitchen</h2>
-                <p>
-                  {submit.channel === "whatsapp"
-                    ? "Your order and allergy card were sent to the restaurant over WhatsApp."
-                    : "Your order is on the kitchen screen. Connect WhatsApp to also text the restaurant."}
-                </p>
+                <h2>Your waiter is on the way</h2>
+                <p>We&apos;ve let the {tableLabel} team know you&apos;re ready to order. They&apos;ll take it at your table.</p>
                 <button className="primary-button" onClick={closeSheet}>Done</button>
               </div>
             ) : (
               <>
-                <h2 className="cart-title">Your order</h2>
+                <h2 className="cart-title">Your basket</h2>
                 <p className="cart-sub">{tableLabel}</p>
 
                 <div className="cart-lines">
@@ -150,32 +144,18 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
                         ))}
 
                         {line.requests.length > 0 && (
-                          <span className="cart-line-note">For the kitchen: {line.requests.join(" · ")}</span>
+                          <span className="cart-line-note">For the waiter: {line.requests.join(" · ")}</span>
                         )}
                       </div>
                     );
                   })}
                 </div>
 
-                <div className="cart-consent">
-                  <div className="cart-consent-head">
-                    <ShieldCheck size={16} />
-                    <span>Your allergies and diet always go to the kitchen with this order.</span>
-                  </div>
-                  <button
-                    className={`toggle-row ${shareSoftPrefs ? "selected" : ""}`}
-                    onClick={() => setShareSoftPrefs((value) => !value)}
-                  >
-                    <span>Also share taste preferences (spice, appetite, likes)</span>
-                    <span>{shareSoftPrefs ? "On" : "Off"}</span>
-                  </button>
-                </div>
-
                 <input
                   className="cart-note"
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
-                  placeholder="Add a note for the kitchen (optional)"
+                  placeholder="Anything to tell your waiter? (optional)"
                   maxLength={280}
                 />
 
@@ -183,8 +163,9 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
 
                 <div className="cart-checkout">
                   <strong>{formatPrice(cart.total)}</strong>
-                  <button className="primary-button" onClick={placeOrder} disabled={submit.status === "sending"}>
-                    {submit.status === "sending" ? "Sending…" : "Place order"}
+                  <button className="primary-button" onClick={callWaiterToOrder} disabled={submit.status === "sending"}>
+                    <BellRing size={18} />
+                    {submit.status === "sending" ? "Calling…" : "Call waiter to order"}
                   </button>
                 </div>
               </>

@@ -2,9 +2,25 @@ import { NextResponse } from "next/server";
 import { getRestaurantBySlug } from "@/lib/restaurants";
 import { addServiceCall, getServiceCall, listServiceCalls, updateServiceCallStatus } from "@/lib/service/store";
 import { sendWhatsApp } from "@/lib/notify/whatsapp";
-import type { ServiceCall, ServiceCallStatus } from "@/lib/service/types";
+import type { ServiceCall, ServiceCallItem, ServiceCallKind, ServiceCallStatus } from "@/lib/service/types";
 
 const VALID_STATUS: ServiceCallStatus[] = ["open", "acknowledged", "resolved"];
+
+function sanitizeItems(input: unknown): ServiceCallItem[] {
+  if (!Array.isArray(input)) return [];
+  return input.slice(0, 40).map((raw) => {
+    const item = (raw ?? {}) as Record<string, unknown>;
+    return {
+      id: String(item.id ?? ""),
+      name: String(item.name ?? "Item").slice(0, 80),
+      qty: Math.max(1, Math.min(20, Math.floor(Number(item.qty) || 1))),
+      price: Number(item.price) || 0,
+      requests: Array.isArray(item.requests)
+        ? item.requests.map((request) => String(request).slice(0, 80)).slice(0, 6)
+        : undefined
+    };
+  });
+}
 
 function newId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -12,9 +28,16 @@ function newId(): string {
 }
 
 export async function POST(request: Request) {
-  let body: { slug?: string; tableLabel?: string; dinerId?: string; reason?: string };
+  let body: {
+    slug?: string;
+    tableLabel?: string;
+    dinerId?: string;
+    reason?: string;
+    kind?: ServiceCallKind;
+    items?: unknown;
+  };
   try {
-    body = (await request.json()) as { slug?: string; tableLabel?: string; dinerId?: string; reason?: string };
+    body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
@@ -28,8 +51,14 @@ export async function POST(request: Request) {
 
   const reason = (body.reason ?? "").slice(0, 120);
   const tableLabel = body.tableLabel || restaurant.tableLabel;
+  const kind: ServiceCallKind = body.kind === "order" ? "order" : "help";
+  const items = kind === "order" ? sanitizeItems(body.items) : [];
+  const basketTotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
 
-  const message = `🔔 ${tableLabel} would like a waiter${reason ? ` — ${reason}` : ""}.`;
+  const message =
+    kind === "order"
+      ? `📝 ${tableLabel} is ready to order:\n${items.map((item) => `• ${item.qty}× ${item.name}`).join("\n")}`
+      : `🔔 ${tableLabel} would like a waiter${reason ? ` — ${reason}` : ""}.`;
   const notify = await sendWhatsApp(message);
 
   const call: ServiceCall = {
@@ -38,6 +67,9 @@ export async function POST(request: Request) {
     tableLabel,
     dinerId: body.dinerId,
     reason,
+    kind,
+    items: kind === "order" ? items : undefined,
+    basketTotal: kind === "order" ? basketTotal : undefined,
     status: "open",
     channel: notify.channel,
     channelDetail: notify.detail,

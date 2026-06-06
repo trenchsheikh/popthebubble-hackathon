@@ -9,7 +9,9 @@ const KNOWN_TYPES = new Set([
   "chat_ask",
   "dish_view",
   "order_placed",
-  "service_call"
+  "service_call",
+  "open_events",
+  "book_event"
 ]);
 
 export async function POST(request: Request) {

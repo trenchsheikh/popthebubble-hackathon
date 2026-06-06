@@ -3431,3 +3431,526 @@ input:focus-visible {
     grid-column: 1 / -1;
   }
 }
+
+/* ---------- Post-dinner event discovery ---------- */
+
+.afterdinner-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  margin: 1.25rem 0 0.5rem;
+  padding: 1rem 1.1rem;
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--gold) 38%, transparent);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, var(--surface-raised)), var(--surface-raised));
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 0.2s ease;
+}
+
+.afterdinner-cta:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--gold) 60%, transparent);
+}
+
+.afterdinner-icon {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+}
+
+.afterdinner-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+}
+
+.afterdinner-copy strong {
+  font-size: 1.02rem;
+}
+
+.afterdinner-copy small {
+  color: var(--muted);
+}
+
+.events-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  animation: eventsRise 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes eventsRise {
+  from { transform: translateY(2%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.events-overlay-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid rgba(244, 239, 231, 0.1);
+}
+
+.events-overlay-head > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.events-overlay-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1.1rem 1.1rem 6rem;
+}
+
+.intent-step {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.intent-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.intent-label {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.intent-vibes .choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.intent-budget {
+  width: 100%;
+}
+
+.intent-text-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.intent-text-row textarea {
+  flex: 1;
+  resize: none;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(244, 239, 231, 0.16);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.intent-text-toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  color: var(--gold);
+  cursor: pointer;
+  font-size: 0.92rem;
+}
+
+.event-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 4rem 1rem;
+  color: var(--muted);
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.event-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.event-adjust {
+  align-self: center;
+  margin-top: 0.5rem;
+}
+
+.event-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(244, 239, 231, 0.12);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 94%, black 6%);
+  box-shadow: var(--shadow);
+}
+
+.event-thumb {
+  position: relative;
+  height: 8.5rem;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+
+.event-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.event-thumb.kind-comedy { background: linear-gradient(135deg, #d6492f, #e0a445); }
+.event-thumb.kind-music { background: linear-gradient(135deg, #7a3fb0, #d6492f); }
+.event-thumb.kind-arts { background: linear-gradient(135deg, #2f6fd6, #43c0e0); }
+.event-thumb.kind-sports { background: linear-gradient(135deg, #2f9b6b, #9bd643); }
+.event-thumb.kind-nightlife { background: linear-gradient(135deg, #2a2a6b, #d6492f); }
+.event-thumb.kind-film { background: linear-gradient(135deg, #444, #c9a227); }
+.event-thumb.kind-other { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+
+.event-badge {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: 999px;
+  background: rgba(20, 17, 15, 0.72);
+  color: var(--gold);
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+}
+
+.event-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.9rem 1rem 1rem;
+}
+
+.event-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--gold);
+}
+
+.event-body h3 {
+  font-family: var(--font-display, "Cormorant Garamond"), serif;
+  font-size: 1.25rem;
+  line-height: 1.15;
+}
+
+.event-venue,
+.event-when {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.event-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.event-price {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.event-book {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding-inline: 1.1rem;
+  width: auto;
+}
+
+.event-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 3.5rem 1rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.event-empty h3 {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .events-overlay { animation: none; }
+  .spin { animation-duration: 0.01ms; }
+}
+
+/* ---------- Restaurant dashboard ---------- */
+
+.dash-shell {
+  min-height: 100svh;
+}
+
+.dash-screen {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.1rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dash-header h1 {
+  font-family: var(--font-display, "Cormorant Garamond"), serif;
+  font-size: clamp(2rem, 7vw, 2.8rem);
+}
+
+.dash-sub {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.dash-panel {
+  border: 1px solid rgba(244, 239, 231, 0.12);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface) 94%, black 6%);
+  padding: 1.1rem 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.dash-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.dash-panel-head h2 {
+  font-size: 1.1rem;
+}
+
+.dash-count {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.dash-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.dash-note {
+  font-size: 0.74rem;
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.dash-guest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+.dash-guest {
+  border: 1px solid rgba(244, 239, 231, 0.1);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  padding: 0.8rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dash-guest-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.dash-guest-spend {
+  font-family: var(--font-display, "Cormorant Garamond"), serif;
+  font-size: 1.6rem;
+  color: var(--ink);
+}
+
+.dash-guest-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.dash-guest-why {
+  font-size: 0.72rem;
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+.dash-tag {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  color: var(--gold);
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+}
+
+.dash-joy {
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}
+
+.joy-great { color: #cae5a6; background: rgba(92, 128, 67, 0.16); }
+.joy-ok { color: var(--gold); background: rgba(201, 162, 39, 0.12); }
+.joy-low { color: #ffb3a0; background: rgba(230, 111, 82, 0.14); }
+
+.dash-stats {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.dash-stat {
+  flex: 1;
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  border: 1px solid rgba(244, 239, 231, 0.1);
+  padding: 0.85rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.dash-stat strong {
+  font-family: var(--font-display, "Cormorant Garamond"), serif;
+  font-size: 1.7rem;
+}
+
+.dash-stat span {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.dash-stat-accent {
+  border-color: color-mix(in srgb, var(--gold) 45%, transparent);
+}
+
+.dash-stat-accent strong {
+  color: var(--gold);
+}
+
+.dash-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.2fr 1.2fr;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(244, 239, 231, 0.08);
+  font-size: 0.88rem;
+}
+
+.dash-row-bookings {
+  grid-template-columns: 2.4fr 1fr 1fr 1fr;
+}
+
+.dash-row-head {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.dash-cell-id,
+.dash-cell-event {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dash-cell-event {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+}
+
+.dash-cell-event small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: capitalize;
+}
+
+.dash-status {
+  font-weight: 600;
+}
+
+.status-paid { color: #cae5a6; }
+.status-pending { color: var(--gold); }
+.status-cancelled { color: #ffb3a0; }
+
+@media (max-width: 540px) {
+  .dash-row,
+  .dash-row-bookings {
+    grid-template-columns: 1.6fr 1fr 1fr;
+  }
+  .dash-row span:nth-child(4),
+  .dash-row-head span:nth-child(4) {
+    display: none;
+  }
+}

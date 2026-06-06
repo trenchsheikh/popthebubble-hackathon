@@ -21,6 +21,7 @@ import {
 import { ChatComposer, ChatPanel, ChatTurn } from "@/components/ChatPanel";
 import { Dish3D } from "@/components/Dish3D";
 import { DishReels } from "@/components/feed/DishReels";
+import { EventDiscovery } from "@/components/events/EventDiscovery";
 import { useCart } from "@/components/cart/CartProvider";
 import { conflicts } from "@/lib/conflicts";
 import { formatPrice } from "@/lib/format";
@@ -84,6 +85,7 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
   const [hideUnsafe, setHideUnsafe] = useState(false);
   const [selected, setSelected] = useState<MenuItem | null>(null);
   const [tab, setTab] = useState<MenuTab>("menu");
+  const [showEvents, setShowEvents] = useState(false);
 
   useEffect(() => {
     const existingDinerId = window.localStorage.getItem(dinerStorageKey);
@@ -203,6 +205,10 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
               setHideUnsafe={setHideUnsafe}
               setSelected={setSelected}
               resetProfile={resetProfile}
+              onOpenEvents={() => {
+                recordEvent({ type: "open_events", dinerId, restaurantId: restaurant.id });
+                setShowEvents(true);
+              }}
             />
           ) : (
             <ChatPanel
@@ -227,6 +233,15 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
             setSelected(null);
             setTab("chat");
           }}
+        />
+      )}
+
+      {showEvents && (
+        <EventDiscovery
+          restaurant={restaurant}
+          dinerId={dinerId}
+          memoryFacts={memoryFacts}
+          onClose={() => setShowEvents(false)}
         />
       )}
     </main>
@@ -467,7 +482,8 @@ function MenuExperience({
   hideUnsafe,
   setHideUnsafe,
   setSelected,
-  resetProfile
+  resetProfile,
+  onOpenEvents
 }: {
   restaurant: Restaurant;
   menu: MenuItem[];
@@ -480,6 +496,7 @@ function MenuExperience({
   setHideUnsafe: (value: boolean) => void;
   setSelected: (dish: MenuItem) => void;
   resetProfile: () => void;
+  onOpenEvents: () => void;
 }) {
   const visibleMenu = hideUnsafe ? menu.filter((dish) => conflicts(dish, profile).length === 0) : menu;
 
@@ -562,6 +579,17 @@ function MenuExperience({
           </section>
         );
       })}
+
+      <button className="afterdinner-cta" onClick={onOpenEvents}>
+        <span className="afterdinner-icon">
+          <Sparkles size={20} />
+        </span>
+        <span className="afterdinner-copy">
+          <strong>Plans after dinner?</strong>
+          <small>Comedy, live music & more nearby — booked in a tap</small>
+        </span>
+        <ChevronRight size={18} />
+      </button>
     </>
   );
 }

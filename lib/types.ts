@@ -51,6 +51,9 @@ export type Restaurant = {
   categories: string[];
   ownerUsername?: string; // restaurant-owner handle captured at onboarding
   exclusionPolicy?: ExclusionPolicy; // menu-wide default for ingredient exclusions
+  lat?: number; // venue latitude — used to find nearby post-dinner events
+  lng?: number; // venue longitude
+  eventCutPct?: number; // restaurant's share of an event referral commission (0..1); defaults to DEFAULT_EVENT_COMMISSION_PCT
 };
 
 export type MenuItem = {
