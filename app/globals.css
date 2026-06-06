@@ -3716,6 +3716,13 @@ input:focus-visible {
   object-fit: cover;
 }
 
+.event-art {
+  width: 4.75rem;
+  height: 4.75rem;
+  opacity: 0.92;
+  filter: drop-shadow(0 0.3rem 0.6rem rgba(0, 0, 0, 0.25));
+}
+
 .event-thumb.kind-comedy { background: linear-gradient(135deg, #d6492f, #e0a445); }
 .event-thumb.kind-music { background: linear-gradient(135deg, #7a3fb0, #d6492f); }
 .event-thumb.kind-arts { background: linear-gradient(135deg, #2f6fd6, #43c0e0); }
