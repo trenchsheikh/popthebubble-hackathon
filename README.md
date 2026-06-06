@@ -36,6 +36,14 @@ desktop is secondary. The demo restaurant is **Hinoki**, a Tokyo izakaya.
   preferences on arrival, learns new ones during the visit, and consolidates on
   the way out — so context follows the diner across venues.
 
+**Diagnostics dashboard** (`/diagnostics`)
+- A live, in-process usage view: QR scans, unique vs. returning diners, and
+  breakdowns by restaurant, table, country, device, source, and use-case
+  (chat, dish views, orders, service calls) plus a recent-activity feed.
+- Events are captured best-effort from the client (`lib/analytics-client.ts`)
+  and enriched server-side. Gate the page in production with
+  `DIAGNOSTICS_TOKEN` (`/diagnostics?key=<token>`).
+
 ---
 
 ## The personalization loop
@@ -117,6 +125,7 @@ never go in a `NEXT_PUBLIC_` var.
 | `FIREWORKS_API_KEY` | optional | LLM (recs, chat, profile extraction) |
 | `MUBIT_API_KEY` | optional | cross-restaurant memory |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` / `RESTAURANT_WHATSAPP_TO` | optional | WhatsApp order alerts |
+| `DIAGNOSTICS_TOKEN` | optional | gate `/diagnostics` (require `?key=<token>`) |
 
 ---
 
@@ -126,11 +135,13 @@ never go in a `NEXT_PUBLIC_` var.
 app/
   r/[slug]/            diner menu (+ /kitchen view)
   studio/              restaurant onboarding studio
+  diagnostics/         live usage dashboard (token-gated)
   api/
     chat/ recommendations/ profile/   grounded AI endpoints
     memory/                            reminisce · learn · consolidate
     studio/publish                     publish a restaurant
     orders/ service-call/              ordering + call-a-human
+    events/ analytics/ session/        usage capture + diagnostics + session
 components/
   DinerApp.tsx         diner experience shell (tabs, detail, memory wiring)
   ChatPanel.tsx        concierge chat + artifacts + voice
@@ -144,6 +155,7 @@ lib/
   auth.ts              restaurant magic-link    auth-diner.ts       anon diner
   db/                  typed queries + Database types
   store/               in-memory restaurant store (DB swap-in seam)
+  analytics/           in-process usage event store + diagnostics summary
   conflicts.ts recommend.ts  deterministic safety + heuristic recs
   useGroundedChat.ts useVoiceInput.ts useDinerMemory.ts   client hooks
 supabase/migrations/   schema + RLS + storage policies
