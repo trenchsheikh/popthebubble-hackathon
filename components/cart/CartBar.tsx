@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BellRing, Check, Minus, Plus, ShoppingBag, Sparkles, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import { getNudges } from "@/lib/nudges";
@@ -35,6 +35,18 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
     if (open) setProfile(readProfile());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Auto-open the cart pop-up whenever an item is added (count goes up).
+  const prevCount = useRef(cart.count);
+  useEffect(() => {
+    if (cart.count > prevCount.current) {
+      setProfile(readProfile());
+      setOpen(true);
+    }
+    if (cart.count === 0 && submit.status !== "done") setOpen(false);
+    prevCount.current = cart.count;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.count]);
 
   if (cart.count === 0 && submit.status !== "done") return null;
 
@@ -84,18 +96,21 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
   return (
     <>
       {cart.count > 0 && submit.status !== "done" && (
-        <button className="cart-fab" onClick={() => setOpen(true)}>
-          <ShoppingBag size={18} />
+        <button
+          className="cart-fab"
+          onClick={() => setOpen((value) => !value)}
+          aria-label={`${t("Review basket")} · ${cart.count}`}
+          aria-expanded={open}
+        >
+          <ShoppingBag size={20} />
           <span className="cart-fab-count">{cart.count}</span>
-          <span>{t("Review basket")}</span>
-          <strong>{formatPrice(cart.total)}</strong>
         </button>
       )}
 
-      {open && (
-        <div className="overlay cart-overlay" role="dialog" aria-modal="true" aria-label="Your basket">
-          <div className="detail-sheet cart-sheet">
-            <button className="icon-button close-button" onClick={closeSheet} aria-label="Close basket">
+      {open && (cart.count > 0 || submit.status === "done") && (
+        <div className="cart-pop" role="dialog" aria-label="Your basket">
+          <div className="cart-pop-inner">
+            <button className="icon-button cart-pop-close" onClick={closeSheet} aria-label="Close basket">
               <X size={18} />
             </button>
 

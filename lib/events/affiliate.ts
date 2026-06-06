@@ -35,6 +35,15 @@ export function affiliateUrl(event: EventOption): string {
       url.searchParams.set("camefrom", tag);
       return url.toString();
     }
+    if (event.provider === "skiddle") {
+      // Skiddle pays 30% via their affiliate program; attribution rides an `aff`
+      // param on the event link (set SKIDDLE_AFFILIATE_ID once enrolled).
+      const aff = process.env.SKIDDLE_AFFILIATE_ID;
+      if (!aff) return event.url;
+      const url = new URL(event.url);
+      url.searchParams.set("aff", aff);
+      return url.toString();
+    }
     return event.url;
   } catch {
     return event.url;

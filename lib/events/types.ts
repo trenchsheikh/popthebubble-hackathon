@@ -14,7 +14,7 @@ export type EventKindTag =
 
 export type GroupType = "solo" | "couple" | "group";
 export type BudgetTier = "low" | "mid" | "high";
-export type EventProviderName = "ticketmaster" | "seatgeek" | "mock";
+export type EventProviderName = "ticketmaster" | "seatgeek" | "skiddle" | "mock";
 
 export type EventOption = {
   id: string; // `${provider}:${providerId}`

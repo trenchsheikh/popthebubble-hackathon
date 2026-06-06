@@ -4,9 +4,10 @@ import { getCachedEvents, setCachedEvents } from "@/lib/events/store";
 import { BUDGET_CEILING, type EventProvider, type EventQuery } from "@/lib/events/providers/types";
 import { ticketmasterProvider } from "@/lib/events/providers/ticketmaster";
 import { seatgeekProvider } from "@/lib/events/providers/seatgeek";
+import { skiddleProvider } from "@/lib/events/providers/skiddle";
 import { mockProvider } from "@/lib/events/providers/mock";
 
-const REAL_PROVIDERS: EventProvider[] = [ticketmasterProvider, seatgeekProvider];
+const REAL_PROVIDERS: EventProvider[] = [ticketmasterProvider, seatgeekProvider, skiddleProvider];
 
 function cacheKey(query: EventQuery): string {
   return JSON.stringify({

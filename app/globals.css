@@ -2388,32 +2388,106 @@ input:focus-visible {
 
 .cart-fab {
   position: fixed;
-  left: 50%;
+  right: max(1rem, env(safe-area-inset-right));
   bottom: max(1rem, env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  z-index: 25;
+  z-index: 26;
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.8rem 1.1rem;
+  justify-content: center;
+  width: 3.4rem;
+  height: 3.4rem;
   border: 0;
   border-radius: 999px;
   color: #fff8ef;
-  font-size: 0.95rem;
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent-2) 88%, #fff 12%));
   box-shadow: 0 1rem 2.4rem rgba(0, 0, 0, 0.45);
+  cursor: pointer;
 }
 
 .cart-fab-count {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
   display: grid;
   place-items: center;
   min-width: 1.4rem;
   height: 1.4rem;
-  padding: 0 0.3rem;
+  padding: 0 0.32rem;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.28);
-  font-size: 0.8rem;
+  background: #14110f;
+  color: #fff8ef;
+  font-size: 0.74rem;
   font-weight: 700;
+  border: 2px solid color-mix(in srgb, var(--accent) 85%, #fff 15%);
+}
+
+/* Cart pop-up anchored to the bottom-right (above the cart icon). */
+.cart-pop {
+  position: fixed;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 4rem);
+  z-index: 39;
+  width: min(22rem, calc(100vw - 1.5rem));
+  max-height: min(70vh, 34rem);
+  overflow-y: auto;
+  border-radius: var(--radius-lg, 18px);
+  border: 1px solid rgba(244, 239, 231, 0.12);
+  background: color-mix(in srgb, var(--surface-raised) 96%, black 4%);
+  box-shadow: 0 1.4rem 3.5rem rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: cartPop 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+}
+
+@keyframes cartPop {
+  from { opacity: 0; transform: translateY(0.6rem) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cart-pop-inner {
+  position: relative;
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.1rem 1.1rem 1.2rem;
+}
+
+.cart-pop-close {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+}
+
+.app-shell[data-tab="chat"] ~ .cart-pop {
+  bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 11.5rem);
+}
+
+/* Persistent quantity stepper on the dish detail */
+.reel-qty {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff8ef;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.reel-qty button {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff8ef;
+  cursor: pointer;
 }
 
 .cart-sheet {

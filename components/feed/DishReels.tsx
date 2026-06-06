@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, ChevronUp, MessageCircle, Plus, ShieldCheck, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronUp, MessageCircle, Minus, Plus, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Dish3D } from "@/components/Dish3D";
 import { useCart } from "@/components/cart/CartProvider";
 import { conflicts } from "@/lib/conflicts";
@@ -79,19 +79,14 @@ function ReelPage({
   const { locale } = useLocale();
   const cart = useCart();
   const [requests, setRequests] = useState<string[]>([]);
-  const [added, setAdded] = useState(false);
 
   const dishConflicts = conflicts(dish, profile);
   const nudges = getNudges(dish, profile);
+  // Persistent quantity straight from the cart — survives closing/reopening the dish.
+  const qty = cart.lines.find((line) => line.dish.id === dish.id)?.qty ?? 0;
 
   function toggleRequest(request: string) {
     setRequests((current) => (current.includes(request) ? current.filter((item) => item !== request) : [...current, request]));
-  }
-
-  function addToOrder() {
-    cart.add(dish, requests);
-    setAdded(true);
-    window.setTimeout(() => setAdded(false), 1500);
   }
 
   return (
@@ -144,10 +139,24 @@ function ReelPage({
             <MessageCircle size={16} />
             {t("Ask")}
           </button>
-          <button className="primary-button" onClick={addToOrder}>
-            {added ? <Check size={18} /> : <Plus size={18} />}
-            {added ? t("Added to basket") : requests.length > 0 ? t("Add (adjusted)") : t("Add to basket")}
-          </button>
+          {qty === 0 ? (
+            <button className="primary-button" onClick={() => cart.add(dish, requests)}>
+              <Plus size={18} />
+              {requests.length > 0 ? t("Add (adjusted)") : t("Add to basket")}
+            </button>
+          ) : (
+            <div className="reel-qty">
+              <button onClick={() => cart.setQty(dish.id, qty - 1)} aria-label={t("Reduce")}>
+                <Minus size={16} />
+              </button>
+              <span>
+                {qty} {t("in basket")}
+              </span>
+              <button onClick={() => cart.add(dish, requests)} aria-label={t("Add")}>
+                <Plus size={16} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </section>
