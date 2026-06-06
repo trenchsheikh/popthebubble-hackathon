@@ -8,7 +8,7 @@ import { useGroundedChat, type UiChatMessage } from "@/lib/useGroundedChat";
 import { useVoiceInput } from "@/lib/useVoiceInput";
 import { useServiceDock } from "@/components/service/ServiceProvider";
 import { useT, useLocale, categoryLabel, dishName } from "@/lib/i18n";
-import type { DinerProfile, MemoryFact, MenuItem, Recommendation, Restaurant } from "@/lib/types";
+import type { DinerProfile, MenuItem, Recommendation, Restaurant } from "@/lib/types";
 
 const SUGGESTIONS = ["What should I start with?", "Something light and not too spicy", "What is the most popular dish?"];
 
@@ -16,44 +16,29 @@ export function ChatPanel({
   restaurant,
   menu,
   profile,
-  memoryFacts,
   recommendedItems,
   onOpenDish,
-  initialAsk,
-  onInitialAskConsumed
+  chat
 }: {
   restaurant: Restaurant;
   menu: MenuItem[];
   profile: DinerProfile;
-  memoryFacts: MemoryFact[];
   recommendedItems: { pick: Recommendation; dish: MenuItem }[];
   onOpenDish: (dish: MenuItem) => void;
-  // A question queued from elsewhere (e.g. a dish's "Ask" button) — auto-sent
-  // once when the panel opens, so the dish artifact + explanation load straight away.
-  initialAsk?: string | null;
-  onInitialAskConsumed?: () => void;
+  // Conversation state is owned by DinerApp so it survives tab switches.
+  chat: ReturnType<typeof useGroundedChat>;
 }) {
   const t = useT();
   const { locale } = useLocale();
-  const chat = useGroundedChat({ restaurant, menu, profile, memoryFacts, locale });
   const service = useServiceDock();
   const [input, setInput] = useState("");
   const threadRef = useRef<HTMLDivElement | null>(null);
-  const askedRef = useRef(false);
   const menuById = useMemo(() => new Map(menu.map((dish) => [dish.id, dish])), [menu]);
 
   useEffect(() => {
     const thread = threadRef.current;
     if (thread) thread.scrollTo({ top: thread.scrollHeight, behavior: "smooth" });
   }, [chat.messages]);
-
-  useEffect(() => {
-    if (initialAsk && !askedRef.current) {
-      askedRef.current = true;
-      chat.send(initialAsk);
-      onInitialAskConsumed?.();
-    }
-  }, [initialAsk, chat, onInitialAskConsumed]);
 
   function submit() {
     if (!input.trim()) return;
@@ -73,13 +58,18 @@ export function ChatPanel({
             </p>
             <div className="suggestion-chips">
               {recommendedItems.slice(0, 1).map(({ dish }) => (
-                <button key={dish.id} onClick={() => chat.send(`Tell me about the ${dish.name}`)}>
+                <button
+                  key={dish.id}
+                  onClick={() =>
+                    chat.send(locale === "ja" ? `${dishName(dish, locale)}について教えてください` : `Tell me about the ${dish.name}`)
+                  }
+                >
                   <Sparkles size={13} />
                   {locale === "ja" ? `${dishName(dish, locale)}について` : `Tell me about ${dish.name}`}
                 </button>
               ))}
               {SUGGESTIONS.map((suggestion) => (
-                <button key={suggestion} onClick={() => chat.send(suggestion)}>
+                <button key={suggestion} onClick={() => chat.send(t(suggestion))}>
                   {t(suggestion)}
                 </button>
               ))}

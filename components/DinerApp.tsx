@@ -135,6 +135,17 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
     .map((pick) => ({ pick, dish: menu.find((item) => item.id === pick.id) }))
     .filter((item): item is { pick: Recommendation; dish: MenuItem } => Boolean(item.dish));
 
+  // Chat lives at the app level so the conversation survives tab switches.
+  const chat = useGroundedChat({ restaurant, menu, profile, memoryFacts, locale });
+
+  // A dish's "Ask" queues a question; send it once the chat owns it.
+  useEffect(() => {
+    if (pendingAsk) {
+      chat.send(pendingAsk);
+      setPendingAsk(null);
+    }
+  }, [pendingAsk, chat]);
+
   function completeOnboarding(nextProfile: DinerProfile) {
     setProfile(nextProfile);
     window.localStorage.setItem(profileStorageKey(restaurant.slug), JSON.stringify(nextProfile));
@@ -223,11 +234,9 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
               restaurant={restaurant}
               menu={menu}
               profile={profile}
-              memoryFacts={memoryFacts}
               recommendedItems={recommendedItems}
               onOpenDish={setSelected}
-              initialAsk={pendingAsk}
-              onInitialAskConsumed={() => setPendingAsk(null)}
+              chat={chat}
             />
           )}
           {tab === "events" && (

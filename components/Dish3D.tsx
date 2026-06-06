@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { X } from "lucide-react";
+import { useT, useLocale } from "@/lib/i18n";
 import type { Allergen, MenuItem } from "@/lib/types";
 
 const ALLERGEN_LABEL: Record<Allergen, string> = {
@@ -51,6 +52,8 @@ export function Dish3D({
     setState((current) => ({ ...current, rx: 0, ry: 0, mx: 50, my: 50, active: false }));
   }
 
+  const t = useT();
+  const { locale } = useLocale();
   const clips = dish.clips ?? [];
   const hasVideo = (clips.length > 0 || Boolean(dish.videoUrl)) && !videoFailed;
   const showImage = !hasVideo && src && !failed;
@@ -170,11 +173,15 @@ export function Dish3D({
           {activeHotspot.macroUrl && (
             <img className="dish3d-pop-thumb" src={activeHotspot.macroUrl} alt={activeHotspot.label} draggable={false} />
           )}
-          <strong>{activeHotspot.label}</strong>
+          <strong>{t(activeHotspot.label)}</strong>
           {activeHotspot.allergen && (
-            <span className="dish3d-pop-allergen">Contains {ALLERGEN_LABEL[activeHotspot.allergen]}</span>
+            <span className="dish3d-pop-allergen">
+              {locale === "ja"
+                ? `${t(ALLERGEN_LABEL[activeHotspot.allergen])}を含む`
+                : `Contains ${ALLERGEN_LABEL[activeHotspot.allergen]}`}
+            </span>
           )}
-          <p>{activeHotspot.note}</p>
+          <p>{t(activeHotspot.note)}</p>
         </div>
       )}
     </div>
