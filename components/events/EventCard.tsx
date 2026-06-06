@@ -25,6 +25,26 @@ const KIND_LABEL: Record<EventKindTag, string> = {
   other: "Event"
 };
 
+// Representative cached stock images per kind (in /public/events). Used when a
+// provider doesn't supply its own imageUrl (e.g. the mock demo events), so cards
+// look enticing. Two per kind for a little variety; picked deterministically.
+const KIND_IMAGES: Record<EventKindTag, string[]> = {
+  comedy: ["/events/comedy-1.jpg", "/events/comedy-2.jpg"],
+  music: ["/events/music-1.jpg", "/events/music-2.jpg"],
+  arts: ["/events/arts-1.jpg", "/events/arts-2.jpg"],
+  sports: ["/events/sports-1.jpg", "/events/sports-2.jpg"],
+  nightlife: ["/events/nightlife-1.jpg", "/events/nightlife-2.jpg"],
+  film: ["/events/film-1.jpg", "/events/film-2.jpg"],
+  other: ["/events/other-1.jpg", "/events/other-2.jpg"]
+};
+
+function fallbackImage(event: EventOption): string {
+  const pool = KIND_IMAGES[event.kind] ?? KIND_IMAGES.other;
+  let sum = 0;
+  for (const ch of event.id) sum += ch.charCodeAt(0);
+  return pool[sum % pool.length];
+}
+
 function whenLabel(startsAt: string | undefined): string | null {
   if (!startsAt) return null;
   const date = new Date(startsAt);
@@ -48,15 +68,21 @@ export function EventCard({
 }) {
   const Icon = KIND_ICON[event.kind];
   const when = whenLabel(event.startsAt);
+  const imageSrc = event.imageUrl ?? fallbackImage(event);
 
   return (
     <article className="event-card">
       <div className={`event-thumb kind-${event.kind}`}>
-        {event.imageUrl ? (
-          <img src={event.imageUrl} alt="" draggable={false} />
-        ) : (
-          <Icon size={30} />
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imageSrc}
+          alt=""
+          draggable={false}
+          onError={(e) => {
+            // Reveal the kind gradient behind if an image ever fails to load.
+            e.currentTarget.style.display = "none";
+          }}
+        />
         <span className="event-badge">Exclusive for guests</span>
       </div>
 
