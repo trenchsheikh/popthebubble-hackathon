@@ -29,7 +29,7 @@ export function QrWidget({ src = "/QR/code.jpg" }: { src?: string }) {
             </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt="Scan this QR code" draggable={false} />
-            <p>Scan to open the menu</p>
+            <p>Scan now</p>
           </div>
         </div>
       )}
