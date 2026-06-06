@@ -4,8 +4,8 @@ import { useState } from "react";
 import { X } from "lucide-react";
 
 // Small circular QR widget pinned bottom-left. Tapping it opens a centred
-// pop-up with the full-size code. Drop the PNG at /public/QR/qr.png.
-export function QrWidget({ src = "/QR/qr.png" }: { src?: string }) {
+// pop-up with the full-size code. Image lives at /public/QR/code.jpg.
+export function QrWidget({ src = "/QR/code.jpg" }: { src?: string }) {
   const [open, setOpen] = useState(false);
 
   return (
