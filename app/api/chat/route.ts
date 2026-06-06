@@ -12,6 +12,7 @@ type ChatBody = {
   memoryFacts?: MemoryFact[];
   messages?: ChatMessage[];
   question?: string;
+  locale?: string;
 };
 
 export async function POST(request: Request) {
@@ -26,7 +27,8 @@ export async function POST(request: Request) {
     profile: body.profile ?? defaultProfile,
     memoryFacts: body.memoryFacts ?? [],
     messages: body.messages ?? [],
-    question: body.question
+    question: body.question,
+    locale: body.locale
   });
 
   return NextResponse.json(response);

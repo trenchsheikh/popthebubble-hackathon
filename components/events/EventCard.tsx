@@ -3,6 +3,7 @@
 import { ArrowUpRight, Check, Clock, Disc3, Film, Laugh, MapPin, Music, Palette, Sparkles, Ticket, Trophy } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { formatMoney } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import type { EventKindTag, EventOption } from "@/lib/events/types";
 
 const KIND_ICON: Record<EventKindTag, ComponentType<{ size?: number }>> = {
@@ -121,6 +122,7 @@ export function EventCard({
   referred: boolean;
   onGetTickets: (event: EventOption) => void;
 }) {
+  const t = useT();
   const Icon = KIND_ICON[event.kind];
   const when = whenLabel(event.startsAt);
 
@@ -133,12 +135,12 @@ export function EventCard({
         ) : (
           KIND_ART[event.kind]
         )}
-        <span className="event-badge">Exclusive for guests</span>
+        <span className="event-badge">{t("Exclusive for guests")}</span>
       </div>
 
       <div className="event-body">
         <span className="event-kind">
-          <Icon size={13} /> {KIND_LABEL[event.kind]}
+          <Icon size={13} /> {t(KIND_LABEL[event.kind])}
         </span>
         <h3>{event.title}</h3>
         <p className="event-venue">
@@ -148,13 +150,13 @@ export function EventCard({
         </p>
         {when && (
           <p className="event-when">
-            <Clock size={13} /> {when}
+            <Clock size={13} /> {when.replace("Tonight", t("Tonight"))}
           </p>
         )}
 
         <div className="event-foot">
           <span className="event-price">
-            {event.priceFrom != null ? `from ${formatMoney(event.priceFrom, event.currency)}` : "Free entry"}
+            {event.priceFrom != null ? `${t("from")} ${formatMoney(event.priceFrom, event.currency)}` : t("Free entry")}
           </span>
           <button
             className={`primary-button event-book ${referred ? "referred" : ""}`}
@@ -162,7 +164,7 @@ export function EventCard({
             disabled={busy}
           >
             {referred ? <Check size={16} /> : busy ? <Ticket size={16} /> : <ArrowUpRight size={16} />}
-            {referred ? "Opened" : busy ? "Opening…" : "Get tickets"}
+            {referred ? t("Opened") : busy ? t("Opening…") : t("Get tickets")}
           </button>
         </div>
       </div>

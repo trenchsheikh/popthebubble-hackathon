@@ -3723,6 +3723,45 @@ input:focus-visible {
   filter: drop-shadow(0 0.3rem 0.6rem rgba(0, 0, 0, 0.25));
 }
 
+/* ── Language toggle (top-right) ─────────────────────────────── */
+.lang-toggle {
+  position: fixed;
+  top: max(0.55rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  z-index: 30;
+  display: inline-flex;
+  gap: 0.1rem;
+  padding: 0.18rem;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 239, 231, 0.16);
+  background: color-mix(in srgb, var(--surface-raised) 92%, black 8%);
+  box-shadow: 0 0.5rem 1.4rem rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.lang-toggle button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.lang-toggle button.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff8ef;
+}
+
+/* Leave room for the toggle so it never overlaps the right-most tab. */
+.menu-tabs {
+  margin-right: 3.6rem;
+}
+
 /* ── QR widget (bottom-left) ─────────────────────────────────── */
 .qr-fab {
   position: fixed;

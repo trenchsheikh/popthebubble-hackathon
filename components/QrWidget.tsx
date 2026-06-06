@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 // Small circular QR widget pinned bottom-left. Tapping it opens a centred
 // pop-up with the full-size code. Image lives at /public/QR/code.jpg.
 export function QrWidget({ src = "/QR/code.jpg" }: { src?: string }) {
   const [open, setOpen] = useState(false);
+  const t = useT();
 
   return (
     <>
@@ -29,7 +31,7 @@ export function QrWidget({ src = "/QR/code.jpg" }: { src?: string }) {
             </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt="Scan this QR code" draggable={false} />
-            <p>Scan now</p>
+            <p>{t("Scan now")}</p>
           </div>
         </div>
       )}

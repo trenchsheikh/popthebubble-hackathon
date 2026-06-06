@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/format";
 import { useGroundedChat, type UiChatMessage } from "@/lib/useGroundedChat";
 import { useVoiceInput } from "@/lib/useVoiceInput";
 import { useServiceDock } from "@/components/service/ServiceProvider";
+import { useT, useLocale, categoryLabel, dishName } from "@/lib/i18n";
 import type { DinerProfile, MemoryFact, MenuItem, Recommendation, Restaurant } from "@/lib/types";
 
 const SUGGESTIONS = ["What should I start with?", "Something light and not too spicy", "What is the most popular dish?"];
@@ -32,7 +33,9 @@ export function ChatPanel({
   initialAsk?: string | null;
   onInitialAskConsumed?: () => void;
 }) {
-  const chat = useGroundedChat({ restaurant, menu, profile, memoryFacts });
+  const t = useT();
+  const { locale } = useLocale();
+  const chat = useGroundedChat({ restaurant, menu, profile, memoryFacts, locale });
   const service = useServiceDock();
   const [input, setInput] = useState("");
   const threadRef = useRef<HTMLDivElement | null>(null);
@@ -64,21 +67,20 @@ export function ChatPanel({
         {chat.messages.length === 0 ? (
           <div className="chat-welcome">
             <span className="chat-orb" aria-hidden />
-            <h2>How can I help you order?</h2>
+            <h2>{t("How can I help you order?")}</h2>
             <p>
-              Ask anything about the {restaurant.shortName} menu — dietary fit, spice, pairings. Every answer stays
-              grounded to tonight&apos;s dishes.
+              {t("Ask anything about the menu — dietary fit, spice, pairings. Every answer stays grounded to tonight's dishes.")}
             </p>
             <div className="suggestion-chips">
               {recommendedItems.slice(0, 1).map(({ dish }) => (
                 <button key={dish.id} onClick={() => chat.send(`Tell me about the ${dish.name}`)}>
                   <Sparkles size={13} />
-                  Tell me about {dish.name}
+                  {locale === "ja" ? `${dishName(dish, locale)}について` : `Tell me about ${dish.name}`}
                 </button>
               ))}
               {SUGGESTIONS.map((suggestion) => (
                 <button key={suggestion} onClick={() => chat.send(suggestion)}>
-                  {suggestion}
+                  {t(suggestion)}
                 </button>
               ))}
             </div>
@@ -98,7 +100,7 @@ export function ChatPanel({
       {service && (
         <button className="talk-to-human" onClick={() => service.openDock("waiter")}>
           <ConciergeBell size={15} />
-          Prefer a person? Talk to a human
+          {t("Prefer a person? Talk to a human")}
         </button>
       )}
       <ChatComposer
@@ -106,7 +108,7 @@ export function ChatPanel({
         onChange={setInput}
         onSubmit={submit}
         busy={chat.busy}
-        placeholder={`Message ${restaurant.shortName}…`}
+        placeholder={locale === "ja" ? `${restaurant.shortName}にメッセージ…` : `Message ${restaurant.shortName}…`}
       />
     </section>
   );
@@ -163,6 +165,8 @@ export function DishArtifact({
   profile: DinerProfile;
   onOpen: () => void;
 }) {
+  const { locale } = useLocale();
+  const t = useT();
   const dishConflicts = conflicts(dish, profile);
   return (
     <button className={`artifact-card ${dishConflicts.length ? "conflicted" : ""}`} onClick={onOpen}>
@@ -172,11 +176,11 @@ export function DishArtifact({
         aria-hidden
       />
       <span className="artifact-copy">
-        <span className="artifact-label">{dish.category}</span>
-        <strong>{dish.name}</strong>
+        <span className="artifact-label">{categoryLabel(dish.category, locale)}</span>
+        <strong>{dishName(dish, locale)}</strong>
         <span className="artifact-meta">
           {formatPrice(dish.price)}
-          {dishConflicts.length > 0 && <em> · {dishConflicts[0]}</em>}
+          {dishConflicts.length > 0 && <em> · {t(dishConflicts[0])}</em>}
         </span>
       </span>
       <span className="artifact-open" aria-hidden>

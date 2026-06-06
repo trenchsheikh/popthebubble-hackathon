@@ -31,6 +31,7 @@ import { heuristicRecommendations } from "@/lib/recommend";
 import { useGroundedChat } from "@/lib/useGroundedChat";
 import { useDinerMemory } from "@/lib/useDinerMemory";
 import { recordEvent } from "@/lib/analytics-client";
+import { useT, useLocale, categoryLabel, dishName, dishBlurb, dishExplainer } from "@/lib/i18n";
 import type { DinerProfile, MemoryFact, MenuItem, Recommendation, Restaurant } from "@/lib/types";
 
 type Stage = "welcome" | "onboarding" | "menu";
@@ -51,12 +52,18 @@ function createDinerId() {
   return `diner_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
-function profileSummary(profile: DinerProfile) {
-  const bits = [];
-  if (profile.diet !== "none") bits.push(profile.diet);
-  if (profile.allergies.length) bits.push(`${profile.allergies.length} allergy lock${profile.allergies.length > 1 ? "s" : ""}`);
-  bits.push(spiceOptions[profile.spice].toLowerCase());
-  bits.push(profile.appetite === "normal" ? "proper meal" : profile.appetite);
+const APPETITE_SUMMARY: Record<DinerProfile["appetite"], string> = {
+  light: "Light bite",
+  normal: "A proper meal",
+  feast: "Feast"
+};
+
+function profileSummary(profile: DinerProfile, t: (en: string) => string) {
+  const bits: string[] = [];
+  if (profile.diet !== "none") bits.push(t(profile.diet.charAt(0).toUpperCase() + profile.diet.slice(1)));
+  if (profile.allergies.length) bits.push(`${profile.allergies.length} ${t("allergy locks")}`);
+  bits.push(t(spiceOptions[profile.spice]));
+  bits.push(t(APPETITE_SUMMARY[profile.appetite]));
   return bits.join(" · ");
 }
 
@@ -79,6 +86,7 @@ function inferMemoryFacts(profile: DinerProfile, returning: boolean): MemoryFact
 }
 
 export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: MenuItem[] }) {
+  const { locale } = useLocale();
   const [stage, setStage] = useState<Stage>("welcome");
   const [dinerId, setDinerId] = useState("");
   const [returning, setReturning] = useState(false);
@@ -242,7 +250,11 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
           onAsk={(dish) => {
             recordEvent({ type: "open_chat", dinerId, restaurantId: restaurant.id });
             setSelected(null);
-            setPendingAsk(`What is the ${dish.name}? Give a short, simple explanation a first-timer would understand.`);
+            setPendingAsk(
+              locale === "ja"
+                ? `${dishName(dish, "ja")}とは何ですか？初めての人にも分かるよう、短く簡単に説明してください。`
+                : `What is the ${dish.name}? Give a short, simple explanation a first-timer would understand.`
+            );
             setTab("chat");
           }}
         />
@@ -253,6 +265,7 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
 }
 
 function MenuTabs({ tab, onTab }: { tab: MenuTab; onTab: (tab: MenuTab) => void }) {
+  const t = useT();
   return (
     <div className="menu-tabs" role="tablist" aria-label="Menu, chat and events">
       <span className="menu-tabs-indicator" data-tab={tab} aria-hidden />
@@ -263,7 +276,7 @@ function MenuTabs({ tab, onTab }: { tab: MenuTab; onTab: (tab: MenuTab) => void 
         onClick={() => onTab("menu")}
       >
         <UtensilsCrossed size={16} />
-        Menu
+        {t("Menu")}
       </button>
       <button
         role="tab"
@@ -272,7 +285,7 @@ function MenuTabs({ tab, onTab }: { tab: MenuTab; onTab: (tab: MenuTab) => void 
         onClick={() => onTab("chat")}
       >
         <Sparkles size={16} />
-        Chat
+        {t("Chat")}
       </button>
       <button
         role="tab"
@@ -281,44 +294,45 @@ function MenuTabs({ tab, onTab }: { tab: MenuTab; onTab: (tab: MenuTab) => void 
         onClick={() => onTab("events")}
       >
         <Ticket size={16} />
-        Events
+        {t("Events")}
       </button>
     </div>
   );
 }
 
 function Welcome({ restaurant, dinerId, onStart }: { restaurant: Restaurant; dinerId: string; onStart: () => void }) {
+  const t = useT();
   return (
     <section className="screen welcome-screen">
       <div className="welcome-bg" aria-hidden>
         <img src={ambiance.hero} alt="" draggable={false} />
       </div>
       <div className="welcome-hero">
-        <p className="eyebrow">{restaurant.cuisine}</p>
+        <p className="eyebrow">{t(restaurant.cuisine)}</p>
         <h1>{restaurant.name}</h1>
-        <p>{restaurant.welcomeLine} Tell us the constraints once, then browse a menu that explains itself.</p>
+        <p>{t(restaurant.welcomeLine)} {t("Tell us the constraints once, then browse a menu that explains itself.")}</p>
       </div>
       <div className="welcome-actions">
         <button className="action-card primary-action" onClick={onStart}>
           <span className="icon-disc"><Sparkles size={20} /></span>
           <span>
-            <strong>Personalize my menu</strong>
-            <small>Diet, allergies, spice, appetite · under a minute</small>
+            <strong>{t("Personalize my menu")}</strong>
+            <small>{t("Diet, allergies, spice, appetite · under a minute")}</small>
           </span>
           <ChevronRight size={20} />
         </button>
         <button className="action-card secondary-action" onClick={onStart}>
           <span className="icon-disc"><ShieldCheck size={20} /></span>
           <span>
-            <strong>Start with safety</strong>
-            <small>Conflicts stay visible and are never model-guessed</small>
+            <strong>{t("Start with safety")}</strong>
+            <small>{t("Conflicts stay visible and are never model-guessed")}</small>
           </span>
           <ChevronRight size={20} />
         </button>
       </div>
       <div className="welcome-footer">
         <UserRoundCheck size={14} />
-        Anonymous diner session {dinerId ? dinerId.slice(0, 8) : "loading"} · memory can be cleared anytime
+        {t("Anonymous diner session")} {dinerId ? dinerId.slice(0, 8) : "loading"} · {t("memory can be cleared anytime")}
       </div>
     </section>
   );
@@ -335,6 +349,7 @@ function Onboarding({
   onBack: () => void;
   onDone: (profile: DinerProfile) => void;
 }) {
+  const t = useT();
   const steps = ["diet", "allergies", "spice", "adventure", "appetite", "memory"] as const;
   const [index, setIndex] = useState(0);
   const [draft, setDraft] = useState<DinerProfile>(initialProfile);
@@ -366,8 +381,8 @@ function Onboarding({
       </div>
 
       <div className="question-block">
-        <p className="eyebrow">{restaurant.shortName} will use this for tonight's menu</p>
-        <h2>{questionFor(step)}</h2>
+        <p className="eyebrow">{restaurant.shortName} {t("will use this for tonight's menu")}</p>
+        <h2>{t(questionFor(step))}</h2>
       </div>
 
       {step === "diet" && (
@@ -378,7 +393,7 @@ function Onboarding({
               className={`choice ${draft.diet === option.key ? "selected" : ""}`}
               onClick={() => setDraft((current) => ({ ...current, diet: option.key }))}
             >
-              {option.label}
+              {t(option.label)}
             </button>
           ))}
         </div>
@@ -402,12 +417,12 @@ function Onboarding({
                 }
               >
                 {selected && <Check size={15} />}
-                {allergen.label}
+                {t(allergen.label)}
               </button>
             );
           })}
           <button className={`choice wide ${draft.allergies.length === 0 ? "selected" : ""}`} onClick={() => setDraft((current) => ({ ...current, allergies: [] }))}>
-            None of these
+            {t("None of these")}
           </button>
         </div>
       )}
@@ -420,9 +435,9 @@ function Onboarding({
               className={`choice row ${draft.spice === spiceIndex ? "selected" : ""}`}
               onClick={() => setDraft((current) => ({ ...current, spice: spiceIndex as DinerProfile["spice"] }))}
             >
-              <span>{option}</span>
+              <span>{t(option)}</span>
               <span className="flame-row">
-                {spiceIndex === 0 ? "no heat" : Array.from({ length: spiceIndex }).map((_, flameIndex) => <Flame key={flameIndex} size={14} />)}
+                {spiceIndex === 0 ? t("no heat") : Array.from({ length: spiceIndex }).map((_, flameIndex) => <Flame key={flameIndex} size={14} />)}
               </span>
             </button>
           ))}
@@ -437,7 +452,7 @@ function Onboarding({
               className={`choice row ${draft.adventure === adventureIndex ? "selected" : ""}`}
               onClick={() => setDraft((current) => ({ ...current, adventure: adventureIndex as DinerProfile["adventure"] }))}
             >
-              {option}
+              {t(option)}
             </button>
           ))}
         </div>
@@ -451,7 +466,7 @@ function Onboarding({
               className={`choice row ${draft.appetite === option.key ? "selected" : ""}`}
               onClick={() => setDraft((current) => ({ ...current, appetite: option.key }))}
             >
-              {option.label}
+              {t(option.label)}
             </button>
           ))}
         </div>
@@ -460,20 +475,20 @@ function Onboarding({
       {step === "memory" && (
         <div className="memory-consent">
           <ShieldCheck size={28} />
-          <h3>Remember this taste profile?</h3>
-          <p>For the MVP, this saves on this device. The production layer will swap this for diner-owned Mubit memory plus a forget-me flow.</p>
+          <h3>{t("Remember this taste profile?")}</h3>
+          <p>{t("For the MVP, this saves on this device. The production layer will swap this for diner-owned Mubit memory plus a forget-me flow.")}</p>
           <button
             className={`toggle-row ${draft.memoryOptIn ? "selected" : ""}`}
             onClick={() => setDraft((current) => ({ ...current, memoryOptIn: !current.memoryOptIn }))}
           >
-            <span>Use this profile next time</span>
-            <span>{draft.memoryOptIn ? "On" : "Off"}</span>
+            <span>{t("Use this profile next time")}</span>
+            <span>{draft.memoryOptIn ? t("On") : t("Off")}</span>
           </button>
         </div>
       )}
 
       <button className="primary-button docked-button" onClick={next}>
-        {finalStep ? "Show my menu" : "Next"}
+        {finalStep ? t("Show my menu") : t("Next")}
         <ChevronRight size={18} />
       </button>
     </section>
@@ -507,6 +522,8 @@ function MenuExperience({
   resetProfile: () => void;
   onOpenEvents: () => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const visibleMenu = hideUnsafe ? menu.filter((dish) => conflicts(dish, profile).length === 0) : menu;
 
   return (
@@ -518,27 +535,33 @@ function MenuExperience({
         <div>
           <div className="session-pill">
             <span className="live-dot" />
-            {restaurant.tableLabel} · {restaurant.serviceStyle}
+            {restaurant.tableLabel.replace("Table", t("Table"))} · {t(restaurant.serviceStyle)}
           </div>
-          <h1>{returning ? `Welcome back to ${restaurant.shortName}` : restaurant.name}</h1>
-          <p>{recommendations.intro}</p>
+          <h1>{returning ? `${t("Welcome back to")} ${restaurant.shortName}` : restaurant.name}</h1>
+          <p>
+            {locale === "ja"
+              ? returning
+                ? `おかえりなさい、${restaurant.shortName}。保存された好みからおすすめを選びました。`
+                : `${restaurant.shortName}でのおすすめはこちらです。`
+              : recommendations.intro}
+          </p>
         </div>
       </header>
 
       <div className="profile-strip">
         <div>
-          <span>Your profile</span>
-          <strong>{profileSummary(profile)}</strong>
+          <span>{t("Your profile")}</span>
+          <strong>{profileSummary(profile, t)}</strong>
         </div>
-        <button className="ghost-button" onClick={resetProfile}>Reset</button>
+        <button className="ghost-button" onClick={resetProfile}>{t("Reset")}</button>
       </div>
 
       {returning && memoryFacts.length > 0 && (
         <div className="memory-strip">
           <UserRoundCheck size={18} />
           <div>
-            <span>Memory preview</span>
-            <strong>{memoryFacts[0].text}</strong>
+            <span>{t("Memory preview")}</span>
+            <strong>{t(memoryFacts[0].text)}</strong>
           </div>
         </div>
       )}
@@ -546,18 +569,18 @@ function MenuExperience({
       <section className="recommendation-section">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">For you</p>
-            <h2>Three safe places to start</h2>
+            <p className="eyebrow">{t("For you")}</p>
+            <h2>{t("Three safe places to start")}</h2>
           </div>
-          <span className="source-pill">{recommendations.source}</span>
+          <span className="source-pill">{t(recommendations.source)}</span>
         </div>
         <div className="recommendation-rail">
           {recommendedItems.map(({ dish, pick }) => (
             <button key={dish.id} className="rec-card" onClick={() => setSelected(dish)}>
               <Dish3D dish={dish} src={dish.imageUrl} />
-              <span>{dish.category}</span>
-              <strong>{dish.name}</strong>
-              <small>{pick.reason}</small>
+              <span>{categoryLabel(dish.category, locale)}</span>
+              <strong>{dishName(dish, locale)}</strong>
+              <small>{t(pick.reason)}</small>
             </button>
           ))}
         </div>
@@ -565,12 +588,12 @@ function MenuExperience({
 
       <div className="filter-row">
         <div>
-          <p className="eyebrow">Full menu</p>
-          <h2>Browse by section</h2>
+          <p className="eyebrow">{t("Full menu")}</p>
+          <h2>{t("Browse by section")}</h2>
         </div>
         <button className={`filter-toggle ${hideUnsafe ? "active" : ""}`} onClick={() => setHideUnsafe(!hideUnsafe)}>
           <SlidersHorizontal size={16} />
-          Hide conflicts
+          {t("Hide conflicts")}
         </button>
       </div>
 
@@ -579,7 +602,7 @@ function MenuExperience({
         if (!items.length) return null;
         return (
           <section key={category} className="category-section">
-            <h3>{category}</h3>
+            <h3>{categoryLabel(category, locale)}</h3>
             <div className="dish-list">
               {items.map((dish) => (
                 <DishCard key={dish.id} dish={dish} profile={profile} onOpen={() => setSelected(dish)} />
@@ -594,8 +617,8 @@ function MenuExperience({
           <Sparkles size={20} />
         </span>
         <span className="afterdinner-copy">
-          <strong>Plans after dinner?</strong>
-          <small>Comedy, live music & more nearby — booked in a tap</small>
+          <strong>{t("Plans after dinner?")}</strong>
+          <small>{t("Comedy, live music & more nearby — booked in a tap")}</small>
         </span>
         <ChevronRight size={18} />
       </button>
@@ -604,17 +627,18 @@ function MenuExperience({
 }
 
 function DishCard({ dish, profile, onOpen }: { dish: MenuItem; profile: DinerProfile; onOpen: () => void }) {
+  const { locale } = useLocale();
   const dishConflicts = conflicts(dish, profile);
   return (
     <button className={`dish-card ${dishConflicts.length ? "conflicted" : ""}`} onClick={onOpen}>
       <Dish3D dish={dish} src={dish.imageUrl} />
       <div className="dish-card-copy">
         <div className="dish-card-top">
-          <span>{dish.category}</span>
+          <span>{categoryLabel(dish.category, locale)}</span>
           <strong>{formatPrice(dish.price)}</strong>
         </div>
-        <h4>{dish.name}</h4>
-        <p>{dish.blurb}</p>
+        <h4>{dishName(dish, locale)}</h4>
+        <p>{dishBlurb(dish, locale)}</p>
         <TagRow dish={dish} dishConflicts={dishConflicts} />
       </div>
     </button>

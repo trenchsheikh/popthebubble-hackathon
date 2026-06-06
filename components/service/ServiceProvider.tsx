@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { BellRing, Check, X } from "lucide-react";
+import { useT, useLocale } from "@/lib/i18n";
 import type { ServiceCall } from "@/lib/service/types";
 
 type ServiceContextValue = {
@@ -92,6 +93,8 @@ function ServiceDock({
     return () => clearInterval(interval);
   }, [call.callId, call.liveStatus]);
 
+  const t = useT();
+  const { locale } = useLocale();
   const onCooldown = call.at ? Date.now() - call.at < CALL_COOLDOWN_MS : false;
 
   async function callWaiter() {
@@ -124,20 +127,26 @@ function ServiceDock({
           {call.status === "sent" ? (
             <div className="service-sent">
               <span className="service-sent-icon"><Check size={24} /></span>
-              <h3>A waiter has been notified</h3>
+              <h3>{t("A waiter has been notified")}</h3>
               <p>
                 {call.liveStatus === "acknowledged" || call.liveStatus === "resolved"
-                  ? "Someone is on their way to your table."
-                  : `The ${shortName} team has your request for ${tableLabel}.`}
+                  ? t("Someone is on their way to your table.")
+                  : locale === "ja"
+                    ? `${shortName}のスタッフが${tableLabel.replace("Table", t("Table"))}のご要望を承りました。`
+                    : `The ${shortName} team has your request for ${tableLabel}.`}
               </p>
               <button className="ghost-button" onClick={() => setCall({ status: "idle" })} disabled={onCooldown}>
-                {onCooldown ? "Waiter on the way…" : "Call again"}
+                {onCooldown ? t("Waiter on the way…") : t("Call again")}
               </button>
             </div>
           ) : (
             <>
-              <h3>Need a hand at {tableLabel}?</h3>
-              <p className="service-sub">Tap a reason (optional), then call a waiter over.</p>
+              <h3>
+                {locale === "ja"
+                  ? `${tableLabel.replace("Table", t("Table"))}でお手伝いしましょうか？`
+                  : `Need a hand at ${tableLabel}?`}
+              </h3>
+              <p className="service-sub">{t("Tap a reason (optional), then call a waiter over.")}</p>
               <div className="service-reasons">
                 {QUICK_REASONS.map((option) => (
                   <button
@@ -145,14 +154,14 @@ function ServiceDock({
                     className={`chip ${reason === option ? "selected" : ""}`}
                     onClick={() => setReason((current) => (current === option ? "" : option))}
                   >
-                    {option}
+                    {t(option)}
                   </button>
                 ))}
               </div>
               {call.status === "error" && <p className="cart-error">{call.detail}</p>}
               <button className="primary-button" onClick={callWaiter} disabled={call.status === "sending"}>
                 <BellRing size={18} />
-                {call.status === "sending" ? "Calling…" : "Call a waiter"}
+                {call.status === "sending" ? t("Calling…") : t("Call a waiter")}
               </button>
             </>
           )}

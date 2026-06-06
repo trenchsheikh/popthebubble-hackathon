@@ -2,6 +2,7 @@
 
 import { CalendarX } from "lucide-react";
 import { EventCard } from "@/components/events/EventCard";
+import { useT } from "@/lib/i18n";
 import type { EventOption } from "@/lib/events/types";
 
 export function EventResults({
@@ -17,14 +18,15 @@ export function EventResults({
   onGetTickets: (event: EventOption) => void;
   onBack: () => void;
 }) {
+  const t = useT();
   if (events.length === 0) {
     return (
       <div className="event-empty">
         <CalendarX size={32} />
-        <h3>Nothing nearby right now</h3>
-        <p>We couldn&apos;t find events matching that. Try a different vibe.</p>
+        <h3>{t("Nothing nearby right now")}</h3>
+        <p>{t("We couldn't find events matching that. Try a different vibe.")}</p>
         <button className="ghost-button" onClick={onBack}>
-          Adjust
+          {t("Adjust")}
         </button>
       </div>
     );
@@ -33,8 +35,8 @@ export function EventResults({
   return (
     <div className="event-results">
       <div className="question-block">
-        <p className="eyebrow">Tonight, near you</p>
-        <h2>Keep the night going</h2>
+        <p className="eyebrow">{t("Tonight, near you")}</p>
+        <h2>{t("Keep the night going")}</h2>
       </div>
       <div className="event-list">
         {events.map((event) => (
@@ -48,7 +50,7 @@ export function EventResults({
         ))}
       </div>
       <button className="ghost-button event-adjust" onClick={onBack}>
-        Adjust preferences
+        {t("Adjust preferences")}
       </button>
     </div>
   );

@@ -17,6 +17,7 @@ type UseGroundedChatArgs = {
   menu: MenuItem[];
   profile: DinerProfile;
   memoryFacts: MemoryFact[];
+  locale?: string;
 };
 
 type GroundedChatPayload = {
@@ -37,7 +38,7 @@ function nextId(): string {
  * cards. Network failures resolve to a friendly assistant message rather than
  * throwing, so the UI never gets stuck on a pending bubble.
  */
-export function useGroundedChat({ restaurant, menu, profile, memoryFacts }: UseGroundedChatArgs) {
+export function useGroundedChat({ restaurant, menu, profile, memoryFacts, locale }: UseGroundedChatArgs) {
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const messagesRef = useRef<UiChatMessage[]>(messages);
@@ -61,7 +62,7 @@ export function useGroundedChat({ restaurant, menu, profile, memoryFacts }: UseG
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ restaurant, menu, profile, memoryFacts, messages: history, question })
+          body: JSON.stringify({ restaurant, menu, profile, memoryFacts, messages: history, question, locale })
         });
         if (!response.ok) throw new Error(`Chat request failed (${response.status})`);
 
@@ -95,7 +96,7 @@ export function useGroundedChat({ restaurant, menu, profile, memoryFacts }: UseG
         setBusy(false);
       }
     },
-    [busy, restaurant, menu, profile, memoryFacts]
+    [busy, restaurant, menu, profile, memoryFacts, locale]
   );
 
   const reset = useCallback(() => setMessages([]), []);

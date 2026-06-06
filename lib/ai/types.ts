@@ -38,6 +38,7 @@ export type GroundedChatInput = {
   memoryFacts?: MemoryFact[];
   messages?: ChatMessage[];
   question: string;
+  locale?: string;
 };
 
 export type GroundedChatResponse = {

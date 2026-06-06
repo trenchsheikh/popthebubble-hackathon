@@ -132,12 +132,17 @@ function heuristicFallback(input: GroundedChatInput): GroundedChatResponse {
 }
 
 export async function groundedChat(input: GroundedChatInput): Promise<GroundedChatResponse> {
+  const langLine =
+    input.locale === "ja"
+      ? "\n\nIMPORTANT: Write the entire `reply` in natural, polite Japanese (です/ます調). Keep dishIds in their original English ids."
+      : "";
+
   const ai = await chatCompletion({
     json: true,
     temperature: 0.4,
     maxTokens: 320,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT(input.restaurant.name, input.restaurant.cuisine) },
+      { role: "system", content: SYSTEM_PROMPT(input.restaurant.name, input.restaurant.cuisine) + langLine },
       {
         role: "user",
         content: JSON.stringify({

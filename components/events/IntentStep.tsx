@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Disc3, Film, Laugh, Mic, Music, Palette, Sparkles, Trophy } from "lucide-react";
 import type { ComponentType } from "react";
 import { useVoiceInput } from "@/lib/useVoiceInput";
+import { useT } from "@/lib/i18n";
 import type { BudgetTier, EventIntent, EventKindTag, GroupType } from "@/lib/events/types";
 
 const GROUPS: { key: GroupType; label: string }[] = [
@@ -42,6 +43,7 @@ export function IntentStep({
   const [showText, setShowText] = useState(false);
   const [text, setText] = useState("");
   const [parsing, setParsing] = useState(false);
+  const t = useT();
 
   const { supported, listening, toggle } = useVoiceInput((transcript) => setText(transcript));
 
@@ -72,12 +74,12 @@ export function IntentStep({
   return (
     <div className="intent-step">
       <div className="question-block">
-        <p className="eyebrow">After dinner</p>
-        <h2>Make a night of it?</h2>
+        <p className="eyebrow">{t("After dinner")}</p>
+        <h2>{t("Make a night of it?")}</h2>
       </div>
 
       <section className="intent-group">
-        <p className="intent-label">Who&apos;s coming?</p>
+        <p className="intent-label">{t("Who's coming?")}</p>
         <div className="choice-grid">
           {GROUPS.map((option) => (
             <button
@@ -85,14 +87,14 @@ export function IntentStep({
               className={`choice ${group === option.key ? "selected" : ""}`}
               onClick={() => setGroup(option.key)}
             >
-              {option.label}
+              {t(option.label)}
             </button>
           ))}
         </div>
       </section>
 
       <section className="intent-group">
-        <p className="intent-label">What sounds good?</p>
+        <p className="intent-label">{t("What sounds good?")}</p>
         <div className="choice-grid intent-vibes">
           {VIBES.map(({ key, label, Icon }) => (
             <button
@@ -101,14 +103,14 @@ export function IntentStep({
               onClick={() => toggleVibe(key)}
             >
               <Icon size={15} />
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
       </section>
 
       <section className="intent-group">
-        <p className="intent-label">Budget</p>
+        <p className="intent-label">{t("Budget")}</p>
         <div className="studio-seg intent-budget">
           {BUDGETS.map((option) => (
             <button
@@ -116,7 +118,7 @@ export function IntentStep({
               className={budget === option.key ? "active" : ""}
               onClick={() => setBudget(option.key)}
             >
-              {option.label}
+              {t(option.label)}
             </button>
           ))}
         </div>
@@ -124,7 +126,7 @@ export function IntentStep({
 
       {showText ? (
         <section className="intent-group intent-text">
-          <p className="intent-label">Tell us in your words</p>
+          <p className="intent-label">{t("Tell us in your words")}</p>
           <div className="intent-text-row">
             {supported && (
               <button
@@ -140,17 +142,17 @@ export function IntentStep({
             <textarea
               value={text}
               onChange={(event) => setText(event.target.value)}
-              placeholder="e.g. something funny and low-key for two…"
+              placeholder={t("e.g. something funny and low-key for two…")}
               rows={2}
             />
           </div>
           <button className="ghost-button" onClick={submitText} disabled={parsing || !text.trim()}>
-            {parsing ? "Reading…" : "Use this"}
+            {parsing ? t("Reading…") : t("Use this")}
           </button>
         </section>
       ) : (
         <button className="intent-text-toggle" onClick={() => setShowText(true)}>
-          <Sparkles size={14} /> Or just tell us →
+          <Sparkles size={14} /> {t("Or just tell us →")}
         </button>
       )}
 
@@ -159,7 +161,7 @@ export function IntentStep({
         onClick={() => onSubmit({ group, vibes, budget })}
         disabled={busy || parsing}
       >
-        {busy ? "Finding events…" : "Find tonight's events"}
+        {busy ? t("Finding events…") : t("Find tonight's events")}
       </button>
     </div>
   );

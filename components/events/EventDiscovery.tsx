@@ -5,6 +5,7 @@ import { Loader2, X } from "lucide-react";
 import { recordEvent } from "@/lib/analytics-client";
 import { IntentStep } from "@/components/events/IntentStep";
 import { EventResults } from "@/components/events/EventResults";
+import { useT } from "@/lib/i18n";
 import type { EventIntent, EventKindTag, EventOption } from "@/lib/events/types";
 import type { MemoryFact, Restaurant } from "@/lib/types";
 
@@ -45,6 +46,7 @@ export function EventDiscovery({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [referredIds, setReferredIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
+  const t = useT();
 
   const initialVibes = useMemo(() => guessVibes(memoryFacts), [memoryFacts]);
 
@@ -105,7 +107,7 @@ export function EventDiscovery({
       {phase === "loading" && (
         <div className="event-loading">
           <Loader2 className="spin" size={30} />
-          <p>Finding tonight&apos;s best nearby…</p>
+          <p>{t("Finding tonight's best nearby…")}</p>
         </div>
       )}
 
@@ -121,10 +123,10 @@ export function EventDiscovery({
 
       {phase === "error" && (
         <div className="event-empty">
-          <h3>Something went wrong</h3>
+          <h3>{t("Something went wrong")}</h3>
           <p>{error}</p>
           <button className="primary-button" onClick={() => setPhase("intent")}>
-            Try again
+            {t("Try again")}
           </button>
         </div>
       )}

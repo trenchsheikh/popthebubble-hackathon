@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { BellRing, Check, Minus, Plus, ShoppingBag, Sparkles, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import { getNudges } from "@/lib/nudges";
+import { useT, useLocale, dishName } from "@/lib/i18n";
 import type { DinerProfile } from "@/lib/types";
 
 function formatPrice(value: number) {
@@ -14,6 +15,8 @@ type SubmitState = { status: "idle" | "sending" | "done" | "error"; detail?: str
 
 export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string }) {
   const cart = useCart();
+  const t = useT();
+  const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
   const [submit, setSubmit] = useState<SubmitState>({ status: "idle" });
@@ -84,7 +87,7 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
         <button className="cart-fab" onClick={() => setOpen(true)}>
           <ShoppingBag size={18} />
           <span className="cart-fab-count">{cart.count}</span>
-          <span>Review basket</span>
+          <span>{t("Review basket")}</span>
           <strong>{formatPrice(cart.total)}</strong>
         </button>
       )}
@@ -99,14 +102,18 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
             {submit.status === "done" ? (
               <div className="cart-done">
                 <span className="cart-done-icon"><Check size={26} /></span>
-                <h2>Your waiter is on the way</h2>
-                <p>We&apos;ve let the {tableLabel} team know you&apos;re ready to order. They&apos;ll take it at your table.</p>
-                <button className="primary-button" onClick={closeSheet}>Done</button>
+                <h2>{t("Your waiter is on the way")}</h2>
+                <p>
+                  {locale === "ja"
+                    ? "ご注文の準備ができたことをスタッフにお伝えしました。テーブルでお伺いします。"
+                    : `We've let the ${tableLabel} team know you're ready to order. They'll take it at your table.`}
+                </p>
+                <button className="primary-button" onClick={closeSheet}>{t("Done")}</button>
               </div>
             ) : (
               <>
-                <h2 className="cart-title">Your basket</h2>
-                <p className="cart-sub">{tableLabel}</p>
+                <h2 className="cart-title">{t("Your basket")}</h2>
+                <p className="cart-sub">{tableLabel.replace("Table", t("Table"))}</p>
 
                 <div className="cart-lines">
                   {cart.lines.map((line) => {
@@ -114,7 +121,7 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
                     return (
                       <div key={line.dish.id} className="cart-line">
                         <div className="cart-line-copy">
-                          <strong>{line.dish.name}</strong>
+                          <strong>{dishName(line.dish, locale)}</strong>
                           <span>{formatPrice(line.dish.price)}</span>
                         </div>
                         <div className="cart-stepper">
@@ -130,21 +137,21 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
                         {nudges.map((nudge) => (
                           <div key={nudge.id} className={`cart-nudge ${nudge.tone}`}>
                             <Sparkles size={13} />
-                            <span>{nudge.message}</span>
+                            <span>{t(nudge.message)}</span>
                             {nudge.action && (
                               <button
                                 className={`cart-nudge-action ${line.requests.includes(nudge.action.request) ? "on" : ""}`}
                                 onClick={() => cart.toggleRequest(line.dish.id, nudge.action!.request)}
                               >
                                 {line.requests.includes(nudge.action.request) ? <Check size={12} /> : null}
-                                {nudge.action.label}
+                                {t(nudge.action.label)}
                               </button>
                             )}
                           </div>
                         ))}
 
                         {line.requests.length > 0 && (
-                          <span className="cart-line-note">For the waiter: {line.requests.join(" · ")}</span>
+                          <span className="cart-line-note">{t("For the waiter:")} {line.requests.map((r) => t(r)).join(" · ")}</span>
                         )}
                       </div>
                     );
@@ -155,7 +162,7 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
                   className="cart-note"
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
-                  placeholder="Anything to tell your waiter? (optional)"
+                  placeholder={t("Anything to tell your waiter? (optional)")}
                   maxLength={280}
                 />
 
@@ -165,7 +172,7 @@ export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string
                   <strong>{formatPrice(cart.total)}</strong>
                   <button className="primary-button" onClick={callWaiterToOrder} disabled={submit.status === "sending"}>
                     <BellRing size={18} />
-                    {submit.status === "sending" ? "Calling…" : "Call waiter to order"}
+                    {submit.status === "sending" ? t("Calling…") : t("Call waiter to order")}
                   </button>
                 </div>
               </>

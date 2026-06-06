@@ -7,6 +7,7 @@ import { useCart } from "@/components/cart/CartProvider";
 import { conflicts } from "@/lib/conflicts";
 import { getNudges } from "@/lib/nudges";
 import { formatPrice } from "@/lib/format";
+import { useT, useLocale, categoryLabel, dishName, dishExplainer } from "@/lib/i18n";
 import type { DinerProfile, MenuItem } from "@/lib/types";
 
 export function DishReels({
@@ -22,6 +23,7 @@ export function DishReels({
   onClose: () => void;
   onAsk: (dish: MenuItem) => void;
 }) {
+  const t = useT();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const startIndex = Math.max(0, dishes.findIndex((dish) => dish.id === startId));
   const [activeIndex, setActiveIndex] = useState(startIndex);
@@ -55,7 +57,7 @@ export function DishReels({
       {activeIndex < dishes.length - 1 && (
         <div className="reels-hint" aria-hidden>
           <ChevronUp size={15} />
-          Swipe up for more
+          {t("Swipe up for more")}
         </div>
       )}
     </div>
@@ -73,6 +75,8 @@ function ReelPage({
   active: boolean;
   onAsk: (dish: MenuItem) => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const cart = useCart();
   const [requests, setRequests] = useState<string[]>([]);
   const [added, setAdded] = useState(false);
@@ -98,22 +102,22 @@ function ReelPage({
 
       <div className="reel-info">
         <div className="reel-meta">
-          <span>{dish.category}</span>
+          <span>{categoryLabel(dish.category, locale)}</span>
           <strong>{formatPrice(dish.price)}</strong>
         </div>
-        <h2>{dish.name}</h2>
-        {dish.nativeName && <p className="native-line">{dish.nativeName}</p>}
-        <p className="reel-blurb">{dish.explainer}</p>
+        <h2>{dishName(dish, locale)}</h2>
+        {dish.nativeName && locale === "en" && <p className="native-line">{dish.nativeName}</p>}
+        <p className="reel-blurb">{dishExplainer(dish, locale)}</p>
 
         {dishConflicts.length > 0 ? (
           <div className="warning-box">
             <AlertTriangle size={16} />
-            <span>{dishConflicts.join(" · ")}</span>
+            <span>{dishConflicts.map((c) => t(c)).join(" · ")}</span>
           </div>
         ) : (
           <div className="safe-box">
             <ShieldCheck size={16} />
-            <span>No conflicts with your saved profile.</span>
+            <span>{t("No conflicts with your saved profile.")}</span>
           </div>
         )}
 
@@ -122,14 +126,14 @@ function ReelPage({
           .map((nudge) => (
             <div key={nudge.id} className={`reel-nudge ${nudge.tone}`}>
               <Sparkles size={13} />
-              <span>{nudge.message}</span>
+              <span>{t(nudge.message)}</span>
               {nudge.action && (
                 <button
                   className={`reel-nudge-action ${requests.includes(nudge.action.request) ? "on" : ""}`}
                   onClick={() => toggleRequest(nudge.action!.request)}
                 >
                   {requests.includes(nudge.action.request) ? <Check size={12} /> : null}
-                  {nudge.action.label}
+                  {t(nudge.action.label)}
                 </button>
               )}
             </div>
@@ -138,11 +142,11 @@ function ReelPage({
         <div className="reel-actions">
           <button className="ghost-button" onClick={() => onAsk(dish)}>
             <MessageCircle size={16} />
-            Ask
+            {t("Ask")}
           </button>
           <button className="primary-button" onClick={addToOrder}>
             {added ? <Check size={18} /> : <Plus size={18} />}
-            {added ? "Added to order" : requests.length > 0 ? "Add (adjusted)" : "Add to order"}
+            {added ? t("Added to basket") : requests.length > 0 ? t("Add (adjusted)") : t("Add to basket")}
           </button>
         </div>
       </div>
