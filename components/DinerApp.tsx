@@ -4,27 +4,29 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
-  Bot,
   Check,
   ChevronRight,
   Flame,
   Leaf,
-  MessageCircle,
   Rotate3D,
-  Send,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  UtensilsCrossed,
   UserRoundCheck,
   X
 } from "lucide-react";
+import { ChatComposer, ChatPanel, ChatTurn } from "@/components/ChatPanel";
 import { Dish3D } from "@/components/Dish3D";
 import { conflicts } from "@/lib/conflicts";
+import { formatPrice } from "@/lib/format";
 import { appetiteOptions, defaultProfile, dietOptions, allergens, spiceOptions, adventureOptions } from "@/lib/profile";
 import { heuristicRecommendations } from "@/lib/recommend";
-import type { ChatMessage, DinerProfile, MemoryFact, MenuItem, Recommendation, Restaurant } from "@/lib/types";
+import { useGroundedChat } from "@/lib/useGroundedChat";
+import type { DinerProfile, MemoryFact, MenuItem, Recommendation, Restaurant } from "@/lib/types";
 
 type Stage = "welcome" | "onboarding" | "menu";
+type MenuTab = "menu" | "chat";
 
 const profileStorageKey = (slug: string) => `taste-passport:${slug}:profile`;
 const dinerStorageKey = "taste-passport:diner-id";
@@ -32,10 +34,6 @@ const dinerStorageKey = "taste-passport:diner-id";
 function createDinerId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   return `diner_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-}
-
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(price);
 }
 
 function profileSummary(profile: DinerProfile) {
@@ -72,9 +70,7 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
   const [profile, setProfile] = useState<DinerProfile>(defaultProfile);
   const [hideUnsafe, setHideUnsafe] = useState(false);
   const [selected, setSelected] = useState<MenuItem | null>(null);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatInput, setChatInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [tab, setTab] = useState<MenuTab>("menu");
 
   useEffect(() => {
     const existingDinerId = window.localStorage.getItem(dinerStorageKey);
@@ -115,25 +111,8 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
     window.localStorage.removeItem(profileStorageKey(restaurant.slug));
     setProfile(defaultProfile);
     setReturning(false);
-    setMessages([]);
+    setTab("menu");
     setStage("welcome");
-  }
-
-  function askAbout(dish: MenuItem) {
-    setSelected(null);
-    setChatOpen(true);
-    setChatInput(`Would ${dish.name} suit me?`);
-  }
-
-  function sendMessage(text = chatInput) {
-    const clean = text.trim();
-    if (!clean) return;
-    const nextMessages: ChatMessage[] = [...messages, { role: "user", content: clean }];
-    const lower = clean.toLowerCase();
-    const namedDish = menu.find((dish) => lower.includes(dish.name.toLowerCase()) || lower.includes(dish.id.replaceAll("-", " ")));
-    const reply = namedDish ? dishReply(namedDish, profile) : generalReply(menu, profile, recommendations.picks);
-    setMessages([...nextMessages, { role: "assistant", content: reply }]);
-    setChatInput("");
   }
 
   return (
@@ -161,38 +140,74 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
       )}
 
       {stage === "menu" && (
-        <MenuExperience
-          restaurant={restaurant}
-          menu={menu}
-          profile={profile}
-          recommendations={recommendations}
-          recommendedItems={recommendedItems}
-          memoryFacts={memoryFacts}
-          returning={returning}
-          hideUnsafe={hideUnsafe}
-          setHideUnsafe={setHideUnsafe}
-          setSelected={setSelected}
-          openChat={() => setChatOpen(true)}
-          resetProfile={resetProfile}
-        />
+        <section className="menu-screen">
+          <MenuTabs tab={tab} onTab={setTab} />
+          {tab === "menu" ? (
+            <MenuExperience
+              restaurant={restaurant}
+              menu={menu}
+              profile={profile}
+              recommendations={recommendations}
+              recommendedItems={recommendedItems}
+              memoryFacts={memoryFacts}
+              returning={returning}
+              hideUnsafe={hideUnsafe}
+              setHideUnsafe={setHideUnsafe}
+              setSelected={setSelected}
+              resetProfile={resetProfile}
+            />
+          ) : (
+            <ChatPanel
+              restaurant={restaurant}
+              menu={menu}
+              profile={profile}
+              memoryFacts={memoryFacts}
+              recommendedItems={recommendedItems}
+              onOpenDish={setSelected}
+            />
+          )}
+        </section>
       )}
 
       {selected && (
-        <DishDetail dish={selected} profile={profile} onClose={() => setSelected(null)} onAsk={() => askAbout(selected)} />
-      )}
-
-      {stage === "menu" && (
-        <ChatDock
-          open={chatOpen}
-          setOpen={setChatOpen}
+        <DishDetail
+          key={selected.id}
+          dish={selected}
+          profile={profile}
           restaurant={restaurant}
-          messages={messages}
-          input={chatInput}
-          setInput={setChatInput}
-          send={sendMessage}
+          menu={menu}
+          memoryFacts={memoryFacts}
+          onClose={() => setSelected(null)}
+          onOpenDish={setSelected}
         />
       )}
     </main>
+  );
+}
+
+function MenuTabs({ tab, onTab }: { tab: MenuTab; onTab: (tab: MenuTab) => void }) {
+  return (
+    <div className="menu-tabs" role="tablist" aria-label="Menu and chat">
+      <span className="menu-tabs-indicator" data-tab={tab} aria-hidden />
+      <button
+        role="tab"
+        aria-selected={tab === "menu"}
+        className={`menu-tab ${tab === "menu" ? "active" : ""}`}
+        onClick={() => onTab("menu")}
+      >
+        <UtensilsCrossed size={16} />
+        Menu
+      </button>
+      <button
+        role="tab"
+        aria-selected={tab === "chat"}
+        className={`menu-tab ${tab === "chat" ? "active" : ""}`}
+        onClick={() => onTab("chat")}
+      >
+        <Sparkles size={16} />
+        Chat
+      </button>
+    </div>
   );
 }
 
@@ -401,7 +416,6 @@ function MenuExperience({
   hideUnsafe,
   setHideUnsafe,
   setSelected,
-  openChat,
   resetProfile
 }: {
   restaurant: Restaurant;
@@ -414,13 +428,12 @@ function MenuExperience({
   hideUnsafe: boolean;
   setHideUnsafe: (value: boolean) => void;
   setSelected: (dish: MenuItem) => void;
-  openChat: () => void;
   resetProfile: () => void;
 }) {
   const visibleMenu = hideUnsafe ? menu.filter((dish) => conflicts(dish, profile).length === 0) : menu;
 
   return (
-    <section className="menu-screen">
+    <>
       <header className="menu-header">
         <div>
           <div className="session-pill">
@@ -430,10 +443,6 @@ function MenuExperience({
           <h1>{returning ? `Welcome back to ${restaurant.shortName}` : restaurant.name}</h1>
           <p>{recommendations.intro}</p>
         </div>
-        <button className="chat-fab" onClick={openChat}>
-          <MessageCircle size={18} />
-          Ask
-        </button>
       </header>
 
       <div className="profile-strip">
@@ -499,7 +508,7 @@ function MenuExperience({
           </section>
         );
       })}
-    </section>
+    </>
   );
 }
 
@@ -521,8 +530,34 @@ function DishCard({ dish, profile, onOpen }: { dish: MenuItem; profile: DinerPro
   );
 }
 
-function DishDetail({ dish, profile, onClose, onAsk }: { dish: MenuItem; profile: DinerProfile; onClose: () => void; onAsk: () => void }) {
+function DishDetail({
+  dish,
+  profile,
+  restaurant,
+  menu,
+  memoryFacts,
+  onClose,
+  onOpenDish
+}: {
+  dish: MenuItem;
+  profile: DinerProfile;
+  restaurant: Restaurant;
+  menu: MenuItem[];
+  memoryFacts: MemoryFact[];
+  onClose: () => void;
+  onOpenDish: (dish: MenuItem) => void;
+}) {
   const dishConflicts = conflicts(dish, profile);
+  const chat = useGroundedChat({ restaurant, menu, profile, memoryFacts });
+  const [input, setInput] = useState("");
+  const menuById = useMemo(() => new Map(menu.map((item) => [item.id, item])), [menu]);
+
+  function submit() {
+    if (!input.trim()) return;
+    chat.send(input);
+    setInput("");
+  }
+
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label={dish.name}>
       <div className="detail-sheet">
@@ -550,10 +585,41 @@ function DishDetail({ dish, profile, onClose, onAsk }: { dish: MenuItem; profile
               <span>No conflicts with your saved profile.</span>
             </div>
           )}
-          <button className="primary-button" onClick={onAsk}>
-            <Bot size={18} />
-            Ask if this suits me
-          </button>
+
+          <div className="detail-ask">
+            <div className="detail-ask-head">
+              <Sparkles size={16} />
+              <span>Ask about this dish</span>
+            </div>
+            {chat.messages.length > 0 && (
+              <div className="detail-thread">
+                {chat.messages.map((message) => (
+                  <ChatTurn
+                    key={message.id}
+                    message={message}
+                    menuById={menuById}
+                    profile={profile}
+                    onOpenDish={onOpenDish}
+                  />
+                ))}
+              </div>
+            )}
+            <div className="detail-ask-quick">
+              <button onClick={() => chat.send(`Would the ${dish.name} suit my profile?`)} disabled={chat.busy}>
+                Does this suit me?
+              </button>
+              <button onClick={() => chat.send(`What are the key ingredients and allergens in the ${dish.name}?`)} disabled={chat.busy}>
+                Ingredients & allergens
+              </button>
+            </div>
+            <ChatComposer
+              value={input}
+              onChange={setInput}
+              onSubmit={submit}
+              busy={chat.busy}
+              placeholder={`Ask about ${dish.name}…`}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -592,71 +658,6 @@ function TagRow({ dish, dishConflicts }: { dish: MenuItem; dishConflicts: string
   );
 }
 
-function ChatDock({
-  open,
-  setOpen,
-  restaurant,
-  messages,
-  input,
-  setInput,
-  send
-}: {
-  open: boolean;
-  setOpen: (value: boolean) => void;
-  restaurant: Restaurant;
-  messages: ChatMessage[];
-  input: string;
-  setInput: (value: string) => void;
-  send: () => void;
-}) {
-  if (!open) {
-    return (
-      <button className="floating-chat" onClick={() => setOpen(true)}>
-        <MessageCircle size={20} />
-      </button>
-    );
-  }
-
-  return (
-    <div className="chat-dock">
-      <div className="chat-head">
-        <div>
-          <span>{restaurant.shortName} concierge</span>
-          <strong>Menu-grounded chat</strong>
-        </div>
-        <button className="icon-button" onClick={() => setOpen(false)} aria-label="Close chat">
-          <X size={18} />
-        </button>
-      </div>
-      <div className="chat-body">
-        {messages.length === 0 && (
-          <div className="assistant-empty">
-            <Bot size={22} />
-            Ask about a dish, dietary fit, spice, or what to order first.
-          </div>
-        )}
-        {messages.map((message, index) => (
-          <div key={`${message.role}-${index}`} className={`bubble ${message.role}`}>
-            {message.content}
-          </div>
-        ))}
-      </div>
-      <form
-        className="chat-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          send();
-        }}
-      >
-        <input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask what suits you..." />
-        <button type="submit" aria-label="Send message">
-          <Send size={17} />
-        </button>
-      </form>
-    </div>
-  );
-}
-
 function questionFor(step: string) {
   switch (step) {
     case "diet":
@@ -672,19 +673,4 @@ function questionFor(step: string) {
     default:
       return "Should we remember this?";
   }
-}
-
-function dishReply(dish: MenuItem, profile: DinerProfile) {
-  const dishConflicts = conflicts(dish, profile);
-  if (dishConflicts.length > 0) {
-    return `${dish.name} is worth flagging: ${dishConflicts.join(", ")}. I would steer you to a safer dish instead.`;
-  }
-  return `${dish.name} should suit you. ${dish.explainer}`;
-}
-
-function generalReply(menu: MenuItem[], profile: DinerProfile, picks: Recommendation[]) {
-  const firstSafePick = picks.map((pick) => menu.find((dish) => dish.id === pick.id)).find(Boolean);
-  if (firstSafePick) return `I would start with ${firstSafePick.name}. It fits your profile, and the menu flags anything risky before you tap in.`;
-  if (profile.allergies.length) return "I can help, but keep the allergy flags visible. Tap any dish and I will explain the exact conflict or fit.";
-  return "Tell me a dish name or what you are in the mood for, and I will keep the answer grounded to this menu.";
 }
