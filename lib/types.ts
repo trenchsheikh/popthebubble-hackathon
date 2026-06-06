@@ -2,6 +2,27 @@ export type Diet = "none" | "vegetarian" | "vegan" | "pescatarian" | "halal";
 export type Appetite = "light" | "normal" | "feast";
 export type Allergen = "gluten" | "shellfish" | "fish" | "dairy" | "egg" | "nuts";
 
+// Whether a restaurant lets diners ask for ingredient exclusions / swaps.
+// "none" = no changes, "some" = only on dishes flagged per-item, "all" = any dish.
+export type ExclusionPolicy = "none" | "some" | "all";
+
+// An uploaded snapshot of a physical/printed menu, kept as a reference image.
+export type MenuPhoto = {
+  id: string;
+  name: string;
+  dataUrl: string;
+};
+
+export type Hotspot = {
+  id: string;
+  x: number; // 0..1, horizontal position within the square dish box
+  y: number; // 0..1, vertical position within the square dish box
+  label: string; // ingredient or feature name
+  note: string; // short taste / what-it-is description (<= ~12 words)
+  allergen?: Allergen; // optional allergen flag tied to this part of the dish
+  macroUrl?: string; // optional close-up image shown in the hotspot pop-up
+};
+
 export type Theme = {
   background: string;
   surface: string;
@@ -28,6 +49,8 @@ export type Restaurant = {
   tone: string;
   theme: Theme;
   categories: string[];
+  ownerUsername?: string; // restaurant-owner handle captured at onboarding
+  exclusionPolicy?: ExclusionPolicy; // menu-wide default for ingredient exclusions
 };
 
 export type MenuItem = {
@@ -46,8 +69,15 @@ export type MenuItem = {
   explainer: string;
   imageUrl?: string;
   modelUrl?: string;
+  clips?: string[]; // ordered short clips (1-2s each) played as a cinematic loop in the hero
+  videoUrl?: string; // single pre-edited cinematic video (alternative to clips)
   available: boolean;
   tags: string[];
+  hotspots?: Hotspot[];
+  steam?: boolean; // Tier 2: render a parallaxed steam layer over the dish (hot dishes)
+  notes?: string; // kitchen notes / exceptions surfaced to diners (e.g. "can be made mild")
+  allowExclusions?: boolean; // per-dish override when the restaurant policy is "some"
+  removable?: string[]; // ingredients the kitchen will leave out on request
 };
 
 export type DinerProfile = {

@@ -8,6 +8,8 @@ import {
   ChevronRight,
   Flame,
   Leaf,
+  Plus,
+  Replace,
   Rotate3D,
   ShieldCheck,
   SlidersHorizontal,
@@ -18,11 +20,14 @@ import {
 } from "lucide-react";
 import { ChatComposer, ChatPanel, ChatTurn } from "@/components/ChatPanel";
 import { Dish3D } from "@/components/Dish3D";
+import { DishReels } from "@/components/feed/DishReels";
+import { useCart } from "@/components/cart/CartProvider";
 import { conflicts } from "@/lib/conflicts";
 import { formatPrice } from "@/lib/format";
 import { appetiteOptions, defaultProfile, dietOptions, allergens, spiceOptions, adventureOptions } from "@/lib/profile";
 import { heuristicRecommendations } from "@/lib/recommend";
 import { useGroundedChat } from "@/lib/useGroundedChat";
+import { useDinerMemory } from "@/lib/useDinerMemory";
 import type { DinerProfile, MemoryFact, MenuItem, Recommendation, Restaurant } from "@/lib/types";
 
 type Stage = "welcome" | "onboarding" | "menu";
@@ -30,6 +35,13 @@ type MenuTab = "menu" | "chat";
 
 const profileStorageKey = (slug: string) => `taste-passport:${slug}:profile`;
 const dinerStorageKey = "taste-passport:diner-id";
+
+// Atmosphere photography (Hinoki). Single-restaurant for now; move onto the
+// restaurant record when the platform goes multi-venue.
+const ambiance = {
+  hero: "/scenes/izakaya-interior.webp",
+  menu: "/scenes/embers.webp"
+};
 
 function createDinerId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -91,7 +103,14 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
     }
   }, [restaurant.slug]);
 
-  const memoryFacts = useMemo(() => inferMemoryFacts(profile, returning), [profile, returning]);
+  // Mubit memory loop: recalls this diner's durable, cross-restaurant memory and
+  // exposes learn/consolidate. Best-effort — no-ops when Mubit is unconfigured.
+  const { mubitFacts, learn, consolidate } = useDinerMemory({ dinerId, restaurantId: restaurant.id });
+  const memoryFacts = useMemo(() => {
+    const inferred = inferMemoryFacts(profile, returning);
+    const seen = new Set(inferred.map((fact) => fact.id));
+    return [...inferred, ...mubitFacts.filter((fact) => !seen.has(fact.id))];
+  }, [mubitFacts, profile, returning]);
   const recommendations = useMemo(
     () => heuristicRecommendations({ menu, profile, restaurant, memoryFacts, returning }),
     [menu, profile, restaurant, memoryFacts, returning]
@@ -105,9 +124,13 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
     window.localStorage.setItem(profileStorageKey(restaurant.slug), JSON.stringify(nextProfile));
     setReturning(false);
     setStage("menu");
+    // Persist the diner's stated preferences as durable, cross-restaurant memory.
+    void learn(inferMemoryFacts(nextProfile, true));
   }
 
   function resetProfile() {
+    // Session end — distill this visit into long-term memory before clearing.
+    void consolidate();
     window.localStorage.removeItem(profileStorageKey(restaurant.slug));
     setProfile(defaultProfile);
     setReturning(false);
@@ -118,6 +141,7 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
   return (
     <main
       className="app-shell"
+      data-tab={stage === "menu" ? tab : "menu"}
       style={
         {
           "--bg": restaurant.theme.background,
@@ -170,15 +194,15 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
       )}
 
       {selected && (
-        <DishDetail
-          key={selected.id}
-          dish={selected}
+        <DishReels
+          dishes={menu}
+          startId={selected.id}
           profile={profile}
-          restaurant={restaurant}
-          menu={menu}
-          memoryFacts={memoryFacts}
           onClose={() => setSelected(null)}
-          onOpenDish={setSelected}
+          onAsk={() => {
+            setSelected(null);
+            setTab("chat");
+          }}
         />
       )}
     </main>
@@ -214,6 +238,9 @@ function MenuTabs({ tab, onTab }: { tab: MenuTab; onTab: (tab: MenuTab) => void 
 function Welcome({ restaurant, dinerId, onStart }: { restaurant: Restaurant; dinerId: string; onStart: () => void }) {
   return (
     <section className="screen welcome-screen">
+      <div className="welcome-bg" aria-hidden>
+        <img src={ambiance.hero} alt="" draggable={false} />
+      </div>
       <div className="session-pill">
         <span className="live-dot" />
         Scan complete · {restaurant.tableLabel}
@@ -435,6 +462,9 @@ function MenuExperience({
   return (
     <>
       <header className="menu-header">
+        <div className="menu-header-bg" aria-hidden>
+          <img src={ambiance.menu} alt="" draggable={false} />
+        </div>
         <div>
           <div className="session-pill">
             <span className="live-dot" />
@@ -474,7 +504,7 @@ function MenuExperience({
         <div className="recommendation-rail">
           {recommendedItems.map(({ dish, pick }) => (
             <button key={dish.id} className="rec-card" onClick={() => setSelected(dish)}>
-              <Dish3D dish={dish} />
+              <Dish3D dish={dish} src={dish.imageUrl} />
               <span>{dish.category}</span>
               <strong>{dish.name}</strong>
               <small>{pick.reason}</small>
@@ -516,7 +546,7 @@ function DishCard({ dish, profile, onOpen }: { dish: MenuItem; profile: DinerPro
   const dishConflicts = conflicts(dish, profile);
   return (
     <button className={`dish-card ${dishConflicts.length ? "conflicted" : ""}`} onClick={onOpen}>
-      <Dish3D dish={dish} />
+      <Dish3D dish={dish} src={dish.imageUrl} />
       <div className="dish-card-copy">
         <div className="dish-card-top">
           <span>{dish.category}</span>
@@ -549,8 +579,16 @@ function DishDetail({
 }) {
   const dishConflicts = conflicts(dish, profile);
   const chat = useGroundedChat({ restaurant, menu, profile, memoryFacts });
+  const cart = useCart();
   const [input, setInput] = useState("");
+  const [added, setAdded] = useState(false);
   const menuById = useMemo(() => new Map(menu.map((item) => [item.id, item])), [menu]);
+
+  function addToOrder() {
+    cart.add(dish);
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1400);
+  }
 
   function submit() {
     if (!input.trim()) return;
@@ -564,7 +602,13 @@ function DishDetail({
         <button className="icon-button close-button" onClick={onClose} aria-label="Close dish detail">
           <X size={18} />
         </button>
-        <Dish3D dish={dish} large />
+        <Dish3D dish={dish} src={dish.imageUrl} large />
+        {dish.hotspots && dish.hotspots.length > 0 && (
+          <p className="hotspot-hint">
+            <Rotate3D size={13} />
+            Tap the dots to explore what is in it
+          </p>
+        )}
         <div className="detail-copy">
           <div className="dish-card-top">
             <span>{dish.category}</span>
@@ -585,6 +629,20 @@ function DishDetail({
               <span>No conflicts with your saved profile.</span>
             </div>
           )}
+
+          {dish.allowExclusions && (
+            <div className="safe-box customise-box">
+              <Replace size={18} />
+              <span>
+                Can be customised{dish.removable?.length ? ` — ask to leave out ${dish.removable.join(", ")}` : ""}.
+              </span>
+            </div>
+          )}
+
+          <button className="primary-button add-to-order" onClick={addToOrder}>
+            {added ? <Check size={18} /> : <Plus size={18} />}
+            {added ? "Added to order" : `Add to order · ${formatPrice(dish.price)}`}
+          </button>
 
           <div className="detail-ask">
             <div className="detail-ask-head">

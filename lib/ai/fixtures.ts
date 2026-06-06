@@ -25,7 +25,7 @@ export const aiServiceFixtures = {
     restaurant,
     menu,
     memoryFacts: [
-      { id: "likes-smoky", kind: "preference", text: "Enjoys smoky vegan dishes", confidence: 0.9 },
+      { id: "likes-crisp", kind: "preference", text: "Enjoys crisp vegan small plates", confidence: 0.9 },
       { id: "avoid-shellfish", kind: "allergy", text: "Must avoid shellfish", confidence: 1 }
     ] satisfies MemoryFact[]
   },
@@ -37,6 +37,6 @@ export const aiServiceFixtures = {
       allergies: ["shellfish", "gluten"],
       spice: 2
     } satisfies DinerProfile,
-    unsafeModelIds: ["brown-crab", "charred-bread", "mushroom-steak"]
+    unsafeModelIds: ["uni", "gyoza", "veg-tempura"]
   }
 };

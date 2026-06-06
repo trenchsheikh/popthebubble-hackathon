@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
 import { DinerApp } from "@/components/DinerApp";
+import { CartProvider } from "@/components/cart/CartProvider";
+import { CartBar } from "@/components/cart/CartBar";
+import { ServiceProvider } from "@/components/service/ServiceProvider";
 import { getMenuForRestaurant, getRestaurantBySlug } from "@/lib/restaurants";
 
 type RestaurantPageProps = {
@@ -14,10 +17,14 @@ export default async function RestaurantPage({ params, searchParams }: Restauran
 
   if (!restaurant) notFound();
 
+  const tableLabel = table ? `Table ${table}` : restaurant.tableLabel;
+
   return (
-    <DinerApp
-      restaurant={{ ...restaurant, tableLabel: table ? `Table ${table}` : restaurant.tableLabel }}
-      menu={getMenuForRestaurant(restaurant.id)}
-    />
+    <CartProvider>
+      <ServiceProvider slug={restaurant.slug} tableLabel={tableLabel} shortName={restaurant.shortName}>
+        <DinerApp restaurant={{ ...restaurant, tableLabel }} menu={getMenuForRestaurant(restaurant.id)} />
+        <CartBar slug={restaurant.slug} tableLabel={tableLabel} />
+      </ServiceProvider>
+    </CartProvider>
   );
 }

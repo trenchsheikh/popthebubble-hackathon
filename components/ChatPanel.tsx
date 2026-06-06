@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ChevronRight, Mic, Sparkles } from "lucide-react";
+import { ArrowUp, ChevronRight, ConciergeBell, Mic, Sparkles } from "lucide-react";
 import { conflicts } from "@/lib/conflicts";
 import { formatPrice } from "@/lib/format";
 import { useGroundedChat, type UiChatMessage } from "@/lib/useGroundedChat";
 import { useVoiceInput } from "@/lib/useVoiceInput";
+import { useServiceDock } from "@/components/service/ServiceProvider";
 import type { DinerProfile, MemoryFact, MenuItem, Recommendation, Restaurant } from "@/lib/types";
 
 const SUGGESTIONS = ["What should I start with?", "Something light and not too spicy", "What is the most popular dish?"];
@@ -26,6 +27,7 @@ export function ChatPanel({
   onOpenDish: (dish: MenuItem) => void;
 }) {
   const chat = useGroundedChat({ restaurant, menu, profile, memoryFacts });
+  const service = useServiceDock();
   const [input, setInput] = useState("");
   const threadRef = useRef<HTMLDivElement | null>(null);
   const menuById = useMemo(() => new Map(menu.map((dish) => [dish.id, dish])), [menu]);
@@ -78,6 +80,12 @@ export function ChatPanel({
           ))
         )}
       </div>
+      {service && (
+        <button className="talk-to-human" onClick={() => service.openDock("waiter")}>
+          <ConciergeBell size={15} />
+          Prefer a person? Talk to a human
+        </button>
+      )}
       <ChatComposer
         value={input}
         onChange={setInput}
