@@ -28,6 +28,7 @@ import { appetiteOptions, defaultProfile, dietOptions, allergens, spiceOptions, 
 import { heuristicRecommendations } from "@/lib/recommend";
 import { useGroundedChat } from "@/lib/useGroundedChat";
 import { useDinerMemory } from "@/lib/useDinerMemory";
+import { recordEvent } from "@/lib/analytics-client";
 import type { DinerProfile, MemoryFact, MenuItem, Recommendation, Restaurant } from "@/lib/types";
 
 type Stage = "welcome" | "onboarding" | "menu";
@@ -101,7 +102,16 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
         window.localStorage.removeItem(profileStorageKey(restaurant.slug));
       }
     }
-  }, [restaurant.slug]);
+
+    // Diagnostics: record the QR scan (who, where, returning) — best-effort.
+    recordEvent({
+      type: "scan",
+      dinerId: nextDinerId,
+      restaurantId: restaurant.id,
+      table: restaurant.tableLabel,
+      returning: Boolean(savedProfile)
+    });
+  }, [restaurant.slug, restaurant.id, restaurant.tableLabel]);
 
   // Mubit memory loop: recalls this diner's durable, cross-restaurant memory and
   // exposes learn/consolidate. Best-effort — no-ops when Mubit is unconfigured.
@@ -126,6 +136,12 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
     setStage("menu");
     // Persist the diner's stated preferences as durable, cross-restaurant memory.
     void learn(inferMemoryFacts(nextProfile, true));
+    recordEvent({
+      type: "onboarding_complete",
+      dinerId,
+      restaurantId: restaurant.id,
+      metadata: { diet: nextProfile.diet, allergies: nextProfile.allergies.length, spice: nextProfile.spice }
+    });
   }
 
   function resetProfile() {
@@ -165,7 +181,15 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
 
       {stage === "menu" && (
         <section className="menu-screen">
-          <MenuTabs tab={tab} onTab={setTab} />
+          <MenuTabs
+            tab={tab}
+            onTab={(next) => {
+              if (next === "chat" && tab !== "chat") {
+                recordEvent({ type: "open_chat", dinerId, restaurantId: restaurant.id });
+              }
+              setTab(next);
+            }}
+          />
           {tab === "menu" ? (
             <MenuExperience
               restaurant={restaurant}

@@ -3236,3 +3236,198 @@ input:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .reels-hint { animation: none; }
 }
+
+/* ── Diagnostics dashboard ──────────────────────────────────── */
+.diag-shell {
+  padding-block: 0;
+}
+
+.diag-screen {
+  width: min(100%, 64rem);
+  margin-inline: auto;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem 3rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.diag-header {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.diag-header h1 {
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1;
+}
+
+.diag-sub {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.diag-warn {
+  color: #e7d4a6;
+  font-size: 0.82rem;
+}
+
+.diag-denied {
+  color: var(--muted);
+  margin-top: 1rem;
+}
+
+.diag-screen code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+}
+
+.diag-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.75rem;
+}
+
+.diag-stat {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(244, 239, 231, 0.12);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface-raised) 60%, transparent);
+}
+
+.diag-stat strong {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.diag-stat span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.diag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+}
+
+.diag-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+  border: 1px solid rgba(244, 239, 231, 0.1);
+  border-radius: var(--radius-lg);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.diag-card h3 {
+  font-family: Manrope, sans-serif;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+}
+
+.diag-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.diag-bars li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "track count" "label count";
+  align-items: center;
+  gap: 0.1rem 0.6rem;
+}
+
+.diag-bar-track {
+  grid-area: track;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.diag-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+.diag-bar-label {
+  grid-area: label;
+  color: var(--muted);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diag-bar-count {
+  grid-area: count;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.diag-recent {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.diag-recent h2 {
+  font-size: 1.4rem;
+}
+
+.diag-table {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.diag-row {
+  display: grid;
+  grid-template-columns: 6rem 9rem 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(244, 239, 231, 0.08);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.82rem;
+}
+
+.diag-time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.diag-type {
+  font-weight: 600;
+  color: var(--accent-2);
+}
+
+.diag-meta {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 540px) {
+  .diag-row {
+    grid-template-columns: 5rem 1fr;
+  }
+  .diag-meta {
+    grid-column: 1 / -1;
+  }
+}
