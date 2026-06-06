@@ -86,6 +86,9 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
   const [hideUnsafe, setHideUnsafe] = useState(false);
   const [selected, setSelected] = useState<MenuItem | null>(null);
   const [tab, setTab] = useState<MenuTab>("menu");
+  // A question queued from a dish's "Ask" button — the chat tab auto-sends it on
+  // open so the dish artifact + a short LLM explanation load straight away.
+  const [pendingAsk, setPendingAsk] = useState<string | null>(null);
 
   useEffect(() => {
     const existingDinerId = window.localStorage.getItem(dinerStorageKey);
@@ -215,6 +218,8 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
               memoryFacts={memoryFacts}
               recommendedItems={recommendedItems}
               onOpenDish={setSelected}
+              initialAsk={pendingAsk}
+              onInitialAskConsumed={() => setPendingAsk(null)}
             />
           )}
           {tab === "events" && (
@@ -234,8 +239,10 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
           startId={selected.id}
           profile={profile}
           onClose={() => setSelected(null)}
-          onAsk={() => {
+          onAsk={(dish) => {
+            recordEvent({ type: "open_chat", dinerId, restaurantId: restaurant.id });
             setSelected(null);
+            setPendingAsk(`What is the ${dish.name}? Give a short, simple explanation a first-timer would understand.`);
             setTab("chat");
           }}
         />

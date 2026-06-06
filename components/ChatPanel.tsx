@@ -17,7 +17,9 @@ export function ChatPanel({
   profile,
   memoryFacts,
   recommendedItems,
-  onOpenDish
+  onOpenDish,
+  initialAsk,
+  onInitialAskConsumed
 }: {
   restaurant: Restaurant;
   menu: MenuItem[];
@@ -25,17 +27,30 @@ export function ChatPanel({
   memoryFacts: MemoryFact[];
   recommendedItems: { pick: Recommendation; dish: MenuItem }[];
   onOpenDish: (dish: MenuItem) => void;
+  // A question queued from elsewhere (e.g. a dish's "Ask" button) — auto-sent
+  // once when the panel opens, so the dish artifact + explanation load straight away.
+  initialAsk?: string | null;
+  onInitialAskConsumed?: () => void;
 }) {
   const chat = useGroundedChat({ restaurant, menu, profile, memoryFacts });
   const service = useServiceDock();
   const [input, setInput] = useState("");
   const threadRef = useRef<HTMLDivElement | null>(null);
+  const askedRef = useRef(false);
   const menuById = useMemo(() => new Map(menu.map((dish) => [dish.id, dish])), [menu]);
 
   useEffect(() => {
     const thread = threadRef.current;
     if (thread) thread.scrollTo({ top: thread.scrollHeight, behavior: "smooth" });
   }, [chat.messages]);
+
+  useEffect(() => {
+    if (initialAsk && !askedRef.current) {
+      askedRef.current = true;
+      chat.send(initialAsk);
+      onInitialAskConsumed?.();
+    }
+  }, [initialAsk, chat, onInitialAskConsumed]);
 
   function submit() {
     if (!input.trim()) return;
