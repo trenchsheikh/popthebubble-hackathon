@@ -151,8 +151,11 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
     window.localStorage.setItem(profileStorageKey(restaurant.slug), JSON.stringify(nextProfile));
     setReturning(false);
     setStage("menu");
-    // Persist the diner's stated preferences as durable, cross-restaurant memory.
-    void learn(inferMemoryFacts(nextProfile, true));
+    // Persist the diner's stated preferences as durable, cross-restaurant memory
+    // (Mubit, keyed by the device token) — only when they've opted in.
+    if (nextProfile.memoryOptIn) {
+      void learn(inferMemoryFacts(nextProfile, true));
+    }
     recordEvent({
       type: "onboarding_complete",
       dinerId,
@@ -484,13 +487,13 @@ function Onboarding({
       {step === "memory" && (
         <div className="memory-consent">
           <ShieldCheck size={28} />
-          <h3>{t("Remember this taste profile?")}</h3>
-          <p>{t("For the MVP, this saves on this device. The production layer will swap this for diner-owned Mubit memory plus a forget-me flow.")}</p>
+          <h3>{t("Remember your tastes across restaurants?")}</h3>
+          <p>{t("Your preferences are stored to your private device key with Mubit and recalled at every restaurant you visit. Switch it off and nothing is kept.")}</p>
           <button
             className={`toggle-row ${draft.memoryOptIn ? "selected" : ""}`}
             onClick={() => setDraft((current) => ({ ...current, memoryOptIn: !current.memoryOptIn }))}
           >
-            <span>{t("Use this profile next time")}</span>
+            <span>{t("Remember me across restaurants")}</span>
             <span>{draft.memoryOptIn ? t("On") : t("Off")}</span>
           </button>
         </div>

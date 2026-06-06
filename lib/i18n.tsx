@@ -191,10 +191,10 @@ const UI_JA: Record<string, string> = {
   "Light bite": "軽め",
   "A proper meal": "しっかり一食",
   Feast: "たっぷり",
-  "Remember this taste profile?": "この味の好みを覚えますか？",
-  "For the MVP, this saves on this device. The production layer will swap this for diner-owned Mubit memory plus a forget-me flow.":
-    "MVPではこの端末に保存されます。本番版ではお客様が所有するMubitメモリーと削除フローに置き換わります。",
-  "Use this profile next time": "次回もこのプロフィールを使う",
+  "Remember your tastes across restaurants?": "あなたの好みを、訪れるお店すべてで覚えますか？",
+  "Your preferences are stored to your private device key with Mubit and recalled at every restaurant you visit. Switch it off and nothing is kept.":
+    "あなたの好みはMubitであなた専用のデバイスキーに保存され、訪れるどのお店でも呼び出されます。オフにすれば何も保存されません。",
+  "Remember me across restaurants": "お店をまたいで覚える",
   On: "オン",
   Off: "オフ",
   // Menu chrome
