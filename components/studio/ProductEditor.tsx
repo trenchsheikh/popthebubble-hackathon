@@ -159,7 +159,7 @@ export function ProductEditor({
             </button>
           </div>
         ) : (
-          <Dropzone label="Add a dish photo" hint="Drag in or tap to upload" busy={photoBusy} onFiles={handlePhoto} />
+          <Dropzone label="Add a dish photo" hint="Drag in or tap to upload" capture busy={photoBusy} onFiles={handlePhoto} />
         )}
       </Field>
     </div>

@@ -6,9 +6,15 @@ import "server-only";
 
 export type LlmChatRole = "system" | "user" | "assistant";
 
+// Multimodal content parts (OpenAI-compatible). A message's content may be a
+// plain string (text-only) or an array mixing text and image parts (vision).
+export type LlmTextPart = { type: "text"; text: string };
+export type LlmImagePart = { type: "image_url"; image_url: { url: string } };
+export type LlmContentPart = LlmTextPart | LlmImagePart;
+
 export interface LlmChatMessage {
   role: LlmChatRole;
-  content: string;
+  content: string | LlmContentPart[];
 }
 
 export interface LlmCallOptions {
@@ -73,6 +79,7 @@ interface OpenAiCompatibleResponse {
 
 const DEFAULT_BASE_URL = "https://api.fireworks.ai/inference/v1";
 const DEFAULT_MODEL = "accounts/fireworks/models/llama-v3p1-70b-instruct";
+const DEFAULT_VISION_MODEL = "accounts/fireworks/models/llama-v3p2-11b-vision-instruct";
 const DEFAULT_TEMPERATURE = 0.2;
 const DEFAULT_MAX_TOKENS = 700;
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -99,6 +106,16 @@ export function isLlmConfigured(): boolean {
   return Boolean(process.env.FIREWORKS_API_KEY);
 }
 
+// Vision uses the same provider/key; only the model differs. A sensible
+// Fireworks vision model is used unless FIREWORKS_VISION_MODEL overrides it.
+export function isVisionConfigured(): boolean {
+  return Boolean(process.env.FIREWORKS_API_KEY);
+}
+
+export function visionModel(): string {
+  return process.env.FIREWORKS_VISION_MODEL ?? DEFAULT_VISION_MODEL;
+}
+
 // Call LLM. Throws LlmConfigError, LlmApiError, LlmParseError.
 export async function callModel(
   messages: LlmChatMessage[],
@@ -110,7 +127,9 @@ export async function callModel(
   const temperature = opts?.temperature ?? DEFAULT_TEMPERATURE;
   const maxTokens = opts?.maxTokens ?? DEFAULT_MAX_TOKENS;
 
-  const url = new URL("/chat/completions", config.baseUrl).toString();
+  // Append to the base path (do NOT use `new URL("/chat/completions", base)`:
+  // an absolute path replaces the base's path, dropping e.g. "/inference/v1").
+  const url = `${config.baseUrl.replace(/\/+$/, "")}/chat/completions`;
 
   const body: Record<string, unknown> = {
     model,

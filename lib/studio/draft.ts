@@ -94,6 +94,43 @@ export function emptyDraftItem(): DraftMenuItem {
   };
 }
 
+// A dish as returned by the menu OCR/vision extractor. Kept here (a shared,
+// client-safe module) so both the server extractor and the client wizard can
+// reference it without importing the server-only extraction module.
+export type ExtractedDish = {
+  name: string;
+  category: string;
+  price: number | null;
+  description: string;
+  spice: 0 | 1 | 2 | 3;
+  vegetarian: boolean;
+  vegan: boolean;
+  contains: Allergen[];
+};
+
+// Map an extracted dish onto an editable draft item the wizard can render.
+export function draftItemFromExtracted(dish: ExtractedDish): DraftMenuItem {
+  const spice = ([0, 1, 2, 3] as const).find((value) => value === dish.spice) ?? 0;
+  const vegan = Boolean(dish.vegan);
+  const contains = Array.isArray(dish.contains)
+    ? dish.contains.filter((allergen) => ALLERGEN_OPTIONS.some((option) => option.key === allergen))
+    : [];
+  return {
+    id: draftId("item"),
+    name: dish.name?.trim() ?? "",
+    category: dish.category?.trim() ?? "",
+    price: dish.price != null && Number.isFinite(dish.price) ? String(dish.price) : "",
+    spice,
+    vegetarian: Boolean(dish.vegetarian) || vegan,
+    vegan,
+    contains,
+    notes: dish.description?.trim() ?? "",
+    allowExclusions: false,
+    removable: "",
+    photoDataUrl: undefined
+  };
+}
+
 export function emptyDraft(): RestaurantDraft {
   return {
     name: "",

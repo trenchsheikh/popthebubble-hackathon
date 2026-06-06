@@ -40,6 +40,7 @@ export function MenuPhotosStep({
         label="Upload photos of your menu"
         hint="Snap your printed or written menu — drag in or tap. Up to 8."
         multiple
+        capture
         busy={busy}
         onFiles={handleFiles}
       />
@@ -59,8 +60,8 @@ export function MenuPhotosStep({
       )}
 
       <p className="studio-hint-line">
-        These stay as a reference for your team while you add dishes in the next step. You can skip this and add dishes
-        directly.
+        We read your dishes straight from these photos so you don&apos;t have to type them out — you&apos;ll review and add
+        a picture for each on the next step. No menu handy? You can still add dishes manually.
       </p>
     </div>
   );

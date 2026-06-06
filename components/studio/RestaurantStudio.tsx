@@ -5,23 +5,25 @@ import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { BasicsStep } from "@/components/studio/BasicsStep";
 import { MenuPhotosStep } from "@/components/studio/MenuPhotosStep";
 import { ProductsStep } from "@/components/studio/ProductsStep";
-import { RulesStep } from "@/components/studio/RulesStep";
 import { ReviewStep } from "@/components/studio/ReviewStep";
 import { PublishedScreen, type PublishResult } from "@/components/studio/PublishedScreen";
 import {
+  draftItemFromExtracted,
   emptyDraft,
   emptyDraftItem,
   validateDraft,
   type DraftMenuItem,
+  type ExtractedDish,
   type RestaurantDraft
 } from "@/lib/studio/draft";
 import type { MenuPhoto } from "@/lib/types";
 
+const MENU_STEP = 1;
+
 const STEPS = [
   { title: "Tell us about your place", subtitle: "The basics diners see when they sit down." },
-  { title: "Upload your menu", subtitle: "Snapshots of your printed menu, kept as reference." },
-  { title: "Add your dishes", subtitle: "Name, price, dietary info, photos and kitchen notes." },
-  { title: "Set your rules", subtitle: "How flexible is the kitchen on changes?" },
+  { title: "Upload your menu", subtitle: "Snap or upload your menu — we read the dishes for you." },
+  { title: "Review your dishes", subtitle: "Pulled from your menu. Check the details and add a photo for each." },
   { title: "Review & publish", subtitle: "One last look before you go live." }
 ] as const;
 
@@ -31,6 +33,9 @@ export function RestaurantStudio() {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [published, setPublished] = useState<PublishResult | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [extractNote, setExtractNote] = useState<string | null>(null);
+  const [extractedOnce, setExtractedOnce] = useState(false);
 
   const categories = useMemo(() => {
     const seen: string[] = [];
@@ -63,6 +68,44 @@ export function RestaurantStudio() {
 
   function setMenuPhotos(photos: MenuPhoto[]) {
     patch({ menuPhotos: photos });
+  }
+
+  // Read dishes from the uploaded menu photos via OCR/vision, then prefill the
+  // dish list. Best-effort: on failure or no result we keep manual entry.
+  async function extractFromMenu() {
+    setExtracting(true);
+    setExtractNote(null);
+    try {
+      const response = await fetch("/api/studio/extract-menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images: draft.menuPhotos.map((photo) => photo.dataUrl) })
+      });
+      const data = (await response.json()) as { configured?: boolean; items?: ExtractedDish[]; error?: string };
+      const items = Array.isArray(data.items) ? data.items : [];
+      if (response.ok && items.length > 0) {
+        setDraft((current) => ({ ...current, items: items.map(draftItemFromExtracted) }));
+        setExtractNote(`Read ${items.length} dish${items.length > 1 ? "es" : ""} from your menu — review and tweak below.`);
+      } else if (response.ok && data.configured) {
+        setExtractNote("We couldn't read dishes from those photos — add them manually below.");
+      } else if (response.ok) {
+        setExtractNote("Menu reader is off — add your dishes manually below.");
+      } else {
+        setExtractNote(data.error ?? "Couldn't read the menu — add your dishes manually below.");
+      }
+    } catch {
+      setExtractNote("Couldn't reach the menu reader — add your dishes manually below.");
+    } finally {
+      setExtractedOnce(true);
+      setExtracting(false);
+    }
+  }
+
+  async function goNext() {
+    if (step === MENU_STEP && !extractedOnce && draft.menuPhotos.length > 0) {
+      await extractFromMenu();
+    }
+    setStep((current) => Math.min(STEPS.length - 1, current + 1));
   }
 
   async function publish() {
@@ -124,18 +167,20 @@ export function RestaurantStudio() {
         {step === 0 && <BasicsStep draft={draft} patch={patch} />}
         {step === 1 && <MenuPhotosStep photos={draft.menuPhotos} onChange={setMenuPhotos} />}
         {step === 2 && (
-          <ProductsStep
-            items={draft.items}
-            menuPhotos={draft.menuPhotos}
-            categories={categories}
-            exclusionPolicy={draft.exclusionPolicy}
-            onUpdateItem={updateItem}
-            onAddItem={addItem}
-            onRemoveItem={removeItem}
-          />
+          <>
+            {extractNote && <p className="studio-extract-note">{extractNote}</p>}
+            <ProductsStep
+              items={draft.items}
+              menuPhotos={draft.menuPhotos}
+              categories={categories}
+              exclusionPolicy={draft.exclusionPolicy}
+              onUpdateItem={updateItem}
+              onAddItem={addItem}
+              onRemoveItem={removeItem}
+            />
+          </>
         )}
-        {step === 3 && <RulesStep draft={draft} patch={patch} />}
-        {step === 4 && <ReviewStep draft={draft} />}
+        {step === 3 && <ReviewStep draft={draft} />}
       </div>
 
       {error && <p className="studio-error">{error}</p>}
@@ -145,7 +190,7 @@ export function RestaurantStudio() {
           type="button"
           className="ghost-button"
           onClick={() => setStep((current) => Math.max(0, current - 1))}
-          disabled={step === 0 || publishing}
+          disabled={step === 0 || publishing || extracting}
         >
           <ArrowLeft size={16} />
           Back
@@ -156,9 +201,18 @@ export function RestaurantStudio() {
             {publishing ? "Publishing…" : "Publish menu"}
           </button>
         ) : (
-          <button type="button" className="primary-button" onClick={() => setStep((current) => current + 1)}>
-            Continue
-            <ArrowRight size={18} />
+          <button type="button" className="primary-button" onClick={goNext} disabled={extracting}>
+            {extracting ? (
+              <>
+                <Loader2 size={18} className="spin" />
+                Reading your menu…
+              </>
+            ) : (
+              <>
+                Continue
+                <ArrowRight size={18} />
+              </>
+            )}
           </button>
         )}
       </footer>

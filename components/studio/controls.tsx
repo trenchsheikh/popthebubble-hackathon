@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { UploadCloud } from "lucide-react";
+import { Camera, UploadCloud } from "lucide-react";
 
 export function Field({
   label,
@@ -68,15 +68,20 @@ export function Dropzone({
   hint,
   multiple,
   busy,
+  capture,
   onFiles
 }: {
   label: string;
   hint: string;
   multiple?: boolean;
   busy?: boolean;
+  // When true, also render an explicit "Take photo" button that opens the
+  // device camera (mobile). The drag/gallery zone still handles file uploads.
+  capture?: boolean;
   onFiles: (files: File[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const cameraRef = useRef<HTMLInputElement | null>(null);
   const [over, setOver] = useState(false);
 
   function handle(list: FileList | null) {
@@ -122,6 +127,32 @@ export function Dropzone({
       <UploadCloud size={20} />
       <strong>{busy ? "Processing…" : label}</strong>
       <span>{hint}</span>
+      {capture && (
+        <>
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={(event) => {
+              handle(event.target.files);
+              event.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            className="dropzone-camera"
+            onClick={(event) => {
+              event.stopPropagation();
+              cameraRef.current?.click();
+            }}
+          >
+            <Camera size={15} />
+            Take photo
+          </button>
+        </>
+      )}
     </div>
   );
 }
