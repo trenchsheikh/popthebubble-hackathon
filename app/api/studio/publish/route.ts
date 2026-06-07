@@ -5,8 +5,7 @@ import {
   createRestaurant,
   getRestaurantBySlug,
   setRestaurantDinerConfig,
-  upsertMenuItems,
-  uploadDishImage
+  upsertMenuItems
 } from "@/lib/db/queries";
 import { enrichMenu } from "@/lib/menu/enrich";
 import { completeOnboardingRun, logOnboardingEvent } from "@/lib/telemetry/onboarding";
@@ -23,15 +22,10 @@ async function resolveSlug(name: string): Promise<string> {
   return `${base}-${Date.now()}`;
 }
 
-// Decode a base64 data URL (the studio downscales photos to JPEG data URLs) into
-// a File the storage upload helper can take.
-function dataUrlToFile(dataUrl: string, name: string): File {
-  const [meta, b64] = dataUrl.split(",");
-  const mime = /data:(.*?);base64/.exec(meta)?.[1] ?? "image/jpeg";
-  const buffer = Buffer.from(b64, "base64");
-  return new File([buffer], name, { type: mime });
-}
-
+// Publishes the restaurant + menu as TEXT only. Dish photos are uploaded
+// separately via /api/studio/upload-image afterwards — sending 50+ base64 images
+// in one request blows past the platform body-size limit (~4.5 MB on Vercel) and
+// fails the whole publish.
 export async function POST(request: Request) {
   // Onboarding writes require a signed-in restaurant owner.
   let ownerId: string;
@@ -42,9 +36,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Please sign in as a restaurant first." }, { status: 401 });
   }
 
-  let draft: RestaurantDraft & { runId?: string };
+  let draft: RestaurantDraft & { runId?: string; photoCount?: number };
   try {
-    draft = (await request.json()) as RestaurantDraft & { runId?: string };
+    draft = (await request.json()) as RestaurantDraft & { runId?: string; photoCount?: number };
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
@@ -57,7 +51,6 @@ export async function POST(request: Request) {
   try {
     const slug = await resolveSlug(draft.name);
     const { restaurant, menu } = draftToEntities(draft, slug);
-    const named = draft.items.filter((item) => item.name.trim()); // aligns 1:1 with `menu`
 
     // 1) Create the restaurant row (real uuid id, owned by the signed-in user).
     const saved = await createRestaurant({
@@ -77,43 +70,27 @@ export async function POST(request: Request) {
       currency: restaurant.currency
     });
 
-    // 2) Upload each dish photo to the dish-images bucket; collect public URLs.
-    let imagesUploaded = 0;
-    const items = await Promise.all(
-      menu.map(async (item, index) => {
-        const dataUrl = named[index]?.photoDataUrl;
-        let imageUrl = item.imageUrl;
-        if (dataUrl && dataUrl.startsWith("data:image")) {
-          try {
-            const file = dataUrlToFile(dataUrl, `${item.id}.jpg`);
-            imageUrl = await uploadDishImage(saved.id, file, item.id);
-            imagesUploaded += 1;
-          } catch {
-            imageUrl = undefined; // never fail the publish on one bad image
-          }
-        }
-        return {
-          id: item.id,
-          name: item.name,
-          nativeName: item.nativeName,
-          category: item.category,
-          price: item.price,
-          spice: item.spice,
-          vegetarian: item.vegetarian,
-          vegan: item.vegan,
-          contains: item.contains,
-          hue: item.hue,
-          blurb: item.blurb,
-          explainer: item.explainer,
-          imageUrl,
-          available: item.available,
-          tags: item.tags,
-          notes: item.notes,
-          allowExclusions: item.allowExclusions,
-          removable: item.removable
-        };
-      })
-    );
+    // 2) Build menu items (text only — photos are uploaded afterwards).
+    const items = menu.map((item) => ({
+      id: item.id,
+      name: item.name,
+      nativeName: item.nativeName,
+      category: item.category,
+      price: item.price,
+      spice: item.spice,
+      vegetarian: item.vegetarian,
+      vegan: item.vegan,
+      contains: item.contains,
+      hue: item.hue,
+      blurb: item.blurb,
+      explainer: item.explainer,
+      imageUrl: undefined as string | undefined,
+      available: item.available,
+      tags: item.tags,
+      notes: item.notes,
+      allowExclusions: item.allowExclusions,
+      removable: item.removable
+    }));
 
     // 3) Menu-intelligence pass: enrich allergens (additive) + derive the
     //    cuisine-adaptive diner question config. Fail-soft (falls back to the
@@ -151,7 +128,7 @@ export async function POST(request: Request) {
         restaurantId: saved.id,
         slug: saved.slug,
         itemCount: enrichedItems.length,
-        imagesUploaded
+        imagesUploaded: draft.photoCount ?? 0
       });
     }
 
@@ -160,7 +137,9 @@ export async function POST(request: Request) {
       restaurantId: saved.id,
       url: `/r/${saved.slug}`,
       itemCount: items.length,
-      imagesUploaded
+      // ids in the same order as the published (named) items, so the client can
+      // attach each dish photo via /api/studio/upload-image.
+      itemIds: enrichedItems.map((item) => item.id)
     });
   } catch {
     return NextResponse.json({ error: "Could not publish your menu." }, { status: 500 });

@@ -36,6 +36,7 @@ export function RestaurantStudio({ ownerEmail }: { ownerEmail?: string } = {}) {
   const [extracting, setExtracting] = useState(false);
   const [extractNote, setExtractNote] = useState<string | null>(null);
   const [extractedOnce, setExtractedOnce] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
 
   // Durable onboarding telemetry. Open a run on mount; each step logs against it.
   const runIdRef = useRef<string | null>(null);
@@ -181,22 +182,69 @@ export function RestaurantStudio({ ownerEmail }: { ownerEmail?: string } = {}) {
     }
     setPublishing(true);
     setError(null);
+    setUploadProgress(null);
     try {
+      // Phase 1 — publish TEXT only (small payload). Dish photos are uploaded
+      // separately below so we never exceed the platform request-size limit.
+      const named = draft.items.filter((item) => item.name.trim());
+      const lightItems = named.map((item) => ({ ...item, photoDataUrl: undefined }));
+      const photos = named
+        .map((item, index) => ({ dataUrl: item.photoDataUrl, index }))
+        .filter((entry): entry is { dataUrl: string; index: number } => Boolean(entry.dataUrl));
+
       const response = await fetch("/api/studio/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...draft, runId: runIdRef.current })
+        body: JSON.stringify({
+          ...draft,
+          menuPhotos: [],
+          items: lightItems,
+          photoCount: photos.length,
+          runId: runIdRef.current
+        })
       });
       const data = await response.json();
       if (!response.ok) {
         setError(typeof data?.error === "string" ? data.error : "Could not publish your menu.");
         return;
       }
+
+      // Phase 2 — upload each dish photo to its menu item, a few at a time, with
+      // progress. One bad image never blocks going live.
+      const itemIds: string[] = Array.isArray(data.itemIds) ? data.itemIds : [];
+      const uploads = photos
+        .map((photo) => ({ dataUrl: photo.dataUrl, itemId: itemIds[photo.index] }))
+        .filter((upload) => Boolean(upload.itemId));
+      if (uploads.length > 0) {
+        setUploadProgress({ done: 0, total: uploads.length });
+        let done = 0;
+        const CONCURRENCY = 4;
+        for (let i = 0; i < uploads.length; i += CONCURRENCY) {
+          await Promise.all(
+            uploads.slice(i, i + CONCURRENCY).map(async (upload) => {
+              try {
+                await fetch("/api/studio/upload-image", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ restaurantId: data.restaurantId, itemId: upload.itemId, dataUrl: upload.dataUrl })
+                });
+              } catch {
+                /* skip a failed image — the dish just shows the gradient placeholder */
+              } finally {
+                done += 1;
+                setUploadProgress({ done, total: uploads.length });
+              }
+            })
+          );
+        }
+      }
+
       setPublished({ slug: data.slug, url: data.url, itemCount: data.itemCount });
     } catch {
       setError("Network error while publishing. Please try again.");
     } finally {
       setPublishing(false);
+      setUploadProgress(null);
     }
   }
 
@@ -263,7 +311,11 @@ export function RestaurantStudio({ ownerEmail }: { ownerEmail?: string } = {}) {
         {isLast ? (
           <button type="button" className="primary-button" onClick={publish} disabled={publishing}>
             {publishing ? <Loader2 size={18} className="spin" /> : <Sparkles size={18} />}
-            {publishing ? "Publishing…" : "Publish menu"}
+            {uploadProgress
+              ? `Uploading photos ${uploadProgress.done}/${uploadProgress.total}…`
+              : publishing
+                ? "Publishing…"
+                : "Publish menu"}
           </button>
         ) : (
           <button type="button" className="primary-button" onClick={goNext} disabled={extracting}>

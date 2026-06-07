@@ -53,6 +53,23 @@ export async function getRestaurantByOwner(ownerId: string): Promise<Restaurant 
   return data ? fromSupabaseRestaurant(data as SupabaseRestaurant) : null;
 }
 
+export async function getRestaurantOwnerId(id: string): Promise<string | null> {
+  const db = createServiceClient();
+  const { data, error } = await db.from('restaurants').select('owner_id').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return (data as { owner_id?: string } | null)?.owner_id ?? null;
+}
+
+export async function updateMenuItemImage(restaurantId: string, itemId: string, imageUrl: string): Promise<void> {
+  const db = createServiceClient();
+  const { error } = await db
+    .from('menu_items')
+    .update({ image_url: imageUrl })
+    .eq('id', itemId)
+    .eq('restaurant_id', restaurantId);
+  if (error) throw error;
+}
+
 export async function getRestaurantById(id: string): Promise<Restaurant | null> {
   const db = createServiceClient();
   const { data, error } = await db
