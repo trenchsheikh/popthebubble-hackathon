@@ -128,13 +128,10 @@ export function EventCard({
 
   return (
     <article className="event-card">
+      {/* Always use the clean on-brand kind gradient + illustrative art — real
+          provider photos were inconsistent/low-quality and looked off. */}
       <div className={`event-thumb kind-${event.kind}`}>
-        {event.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={event.imageUrl} alt="" draggable={false} />
-        ) : (
-          KIND_ART[event.kind]
-        )}
+        {KIND_ART[event.kind]}
         <span className="event-badge">{t("Exclusive for guests")}</span>
       </div>
 
