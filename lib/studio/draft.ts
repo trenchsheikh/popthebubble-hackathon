@@ -26,6 +26,7 @@ export type RestaurantDraft = {
   city: string;
   serviceStyle: string;
   welcomeLine: string;
+  currency: string; // ISO 4217 menu currency, e.g. "GBP" / "CNY"
   exclusionPolicy: ExclusionPolicy;
   menuPhotos: MenuPhoto[];
   items: DraftMenuItem[];
@@ -138,6 +139,7 @@ export function emptyDraft(): RestaurantDraft {
     city: "",
     serviceStyle: "",
     welcomeLine: "",
+    currency: "GBP",
     exclusionPolicy: "some",
     menuPhotos: [],
     items: [emptyDraftItem()]
@@ -219,6 +221,7 @@ export function draftToEntities(
     tableLabel: "Table 1",
     welcomeLine: draft.welcomeLine.trim() || `Welcome to ${draft.name.trim()}.`,
     tone: "",
+    currency: draft.currency || "GBP",
     theme: DEFAULT_THEME,
     categories: uniqueCategories(named),
     ownerUsername: draft.username.trim(),

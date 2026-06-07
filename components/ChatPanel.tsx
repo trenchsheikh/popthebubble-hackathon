@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, ChevronRight, ConciergeBell, Mic, Sparkles } from "lucide-react";
 import { conflicts } from "@/lib/conflicts";
-import { formatPrice } from "@/lib/format";
+import { useMoney } from "@/lib/currency";
 import { useGroundedChat, type UiChatMessage } from "@/lib/useGroundedChat";
 import { useVoiceInput } from "@/lib/useVoiceInput";
 import { useServiceDock } from "@/components/service/ServiceProvider";
@@ -157,6 +157,7 @@ export function DishArtifact({
 }) {
   const { locale } = useLocale();
   const t = useT();
+  const money = useMoney();
   const dishConflicts = conflicts(dish, profile);
   return (
     <button className={`artifact-card ${dishConflicts.length ? "conflicted" : ""}`} onClick={onOpen}>
@@ -169,7 +170,7 @@ export function DishArtifact({
         <span className="artifact-label">{categoryLabel(dish.category, locale)}</span>
         <strong>{dishName(dish, locale)}</strong>
         <span className="artifact-meta">
-          {formatPrice(dish.price)}
+          {money(dish.price)}
           {dishConflicts.length > 0 && <em> · {t(dishConflicts[0])}</em>}
         </span>
       </span>

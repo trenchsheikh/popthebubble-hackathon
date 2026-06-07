@@ -5,6 +5,7 @@ import { CartBar } from "@/components/cart/CartBar";
 import { ServiceProvider } from "@/components/service/ServiceProvider";
 import { QrWidget } from "@/components/QrWidget";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { CurrencyProvider } from "@/lib/currency";
 import { getMenuForRestaurant, getRestaurantBySlug } from "@/lib/restaurants";
 
 type RestaurantPageProps = {
@@ -23,13 +24,15 @@ export default async function RestaurantPage({ params, searchParams }: Restauran
   const menu = await getMenuForRestaurant(restaurant.id);
 
   return (
-    <CartProvider>
-      <ServiceProvider slug={restaurant.slug} tableLabel={tableLabel} shortName={restaurant.shortName}>
-        <DinerApp restaurant={{ ...restaurant, tableLabel }} menu={menu} />
-        <CartBar slug={restaurant.slug} tableLabel={tableLabel} />
-        <QrWidget />
-        <LanguageToggle />
-      </ServiceProvider>
-    </CartProvider>
+    <CurrencyProvider currency={restaurant.currency}>
+      <CartProvider>
+        <ServiceProvider slug={restaurant.slug} tableLabel={tableLabel} shortName={restaurant.shortName}>
+          <DinerApp restaurant={{ ...restaurant, tableLabel }} menu={menu} />
+          <CartBar slug={restaurant.slug} tableLabel={tableLabel} />
+          <QrWidget />
+          <LanguageToggle />
+        </ServiceProvider>
+      </CartProvider>
+    </CurrencyProvider>
   );
 }

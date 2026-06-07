@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Flame, Trash2, X } from "lucide-react";
 import { Dropzone, Field, Segmented, Toggle } from "@/components/studio/controls";
 import { ALLERGEN_OPTIONS, SPICE_LABELS, type DraftMenuItem } from "@/lib/studio/draft";
+import { currencySymbol } from "@/lib/menu/currency";
 import { fileToDownscaledDataUrl } from "@/lib/studio/image";
 import type { Allergen, ExclusionPolicy } from "@/lib/types";
 
@@ -23,6 +24,7 @@ export function ProductEditor({
   index,
   categories,
   exclusionPolicy,
+  currency = "GBP",
   onChange,
   onRemove,
   canRemove
@@ -31,6 +33,7 @@ export function ProductEditor({
   index: number;
   categories: string[];
   exclusionPolicy: ExclusionPolicy;
+  currency?: string;
   onChange: (partial: Partial<DraftMenuItem>) => void;
   onRemove: () => void;
   canRemove: boolean;
@@ -84,7 +87,7 @@ export function ProductEditor({
             placeholder="e.g. Sushi"
           />
         </Field>
-        <Field label="Price (£)" required>
+        <Field label={`Price (${currencySymbol(currency)})`} required>
           <input
             value={item.price}
             inputMode="decimal"

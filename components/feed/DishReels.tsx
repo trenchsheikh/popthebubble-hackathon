@@ -6,7 +6,7 @@ import { Dish3D } from "@/components/Dish3D";
 import { useCart } from "@/components/cart/CartProvider";
 import { conflicts } from "@/lib/conflicts";
 import { getNudges } from "@/lib/nudges";
-import { formatPrice } from "@/lib/format";
+import { useMoney } from "@/lib/currency";
 import { useT, useLocale, categoryLabel, dishName, dishExplainer } from "@/lib/i18n";
 import type { DinerProfile, MenuItem } from "@/lib/types";
 
@@ -76,6 +76,7 @@ function ReelPage({
   onAsk: (dish: MenuItem) => void;
 }) {
   const t = useT();
+  const money = useMoney();
   const { locale } = useLocale();
   const cart = useCart();
   const [requests, setRequests] = useState<string[]>([]);
@@ -98,7 +99,7 @@ function ReelPage({
       <div className="reel-info">
         <div className="reel-meta">
           <span>{categoryLabel(dish.category, locale)}</span>
-          <strong>{formatPrice(dish.price)}</strong>
+          <strong>{money(dish.price)}</strong>
         </div>
         <h2>{dishName(dish, locale)}</h2>
         {dish.nativeName && locale === "en" && <p className="native-line">{dish.nativeName}</p>}

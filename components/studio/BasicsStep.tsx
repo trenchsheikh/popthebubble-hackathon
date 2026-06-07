@@ -2,6 +2,7 @@
 
 import { Field } from "@/components/studio/controls";
 import { slugify, type RestaurantDraft } from "@/lib/studio/draft";
+import { CURRENCY_OPTIONS, currencyForCuisine } from "@/lib/menu/currency";
 
 export function BasicsStep({
   draft,
@@ -29,7 +30,20 @@ export function BasicsStep({
 
       <div className="product-grid">
         <Field label="Cuisine">
-          <input value={draft.cuisine} onChange={(event) => patch({ cuisine: event.target.value })} placeholder="e.g. Tokyo Izakaya" />
+          <input
+            value={draft.cuisine}
+            onChange={(event) => patch({ cuisine: event.target.value, currency: currencyForCuisine(event.target.value) })}
+            placeholder="e.g. Tokyo Izakaya"
+          />
+        </Field>
+        <Field label="Menu currency" hint="What prices on your menu are in">
+          <select value={draft.currency} onChange={(event) => patch({ currency: event.target.value })}>
+            {CURRENCY_OPTIONS.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="City">
           <input value={draft.city} onChange={(event) => patch({ city: event.target.value })} placeholder="e.g. London" />

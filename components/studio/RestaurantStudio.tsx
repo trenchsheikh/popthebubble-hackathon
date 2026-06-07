@@ -238,6 +238,7 @@ export function RestaurantStudio({ ownerEmail }: { ownerEmail?: string } = {}) {
               menuPhotos={draft.menuPhotos}
               categories={categories}
               exclusionPolicy={draft.exclusionPolicy}
+              currency={draft.currency}
               onUpdateItem={updateItem}
               onAddItem={addItem}
               onRemoveItem={removeItem}

@@ -73,7 +73,8 @@ export async function POST(request: Request) {
       theme: restaurant.theme as unknown as Record<string, string>,
       categories: restaurant.categories,
       ownerId,
-      exclusionPolicy: restaurant.exclusionPolicy
+      exclusionPolicy: restaurant.exclusionPolicy,
+      currency: restaurant.currency
     });
 
     // 2) Upload each dish photo to the dish-images bucket; collect public URLs.

@@ -93,6 +93,7 @@ export async function createRestaurant(input: {
   categories: string[];
   ownerId: string;
   exclusionPolicy?: 'none' | 'some' | 'all';
+  currency?: string;
 }): Promise<Restaurant> {
   const db = createServiceClient();
 
@@ -110,6 +111,7 @@ export async function createRestaurant(input: {
     categories: input.categories,
     owner_id: input.ownerId,
     exclusion_policy: input.exclusionPolicy || 'none',
+    currency: input.currency || 'GBP',
   };
   // Only set id when explicitly provided; otherwise let the column default
   // (gen_random_uuid()) apply. Passing id: undefined sends an explicit null.
@@ -522,6 +524,7 @@ function fromSupabaseRestaurant(row: SupabaseRestaurant): Restaurant {
     ownerUsername: undefined,
     exclusionPolicy: row.exclusion_policy,
     dinerConfig: (row as any).diner_config ?? undefined,
+    currency: (row as any).currency ?? "GBP",
   };
 }
 

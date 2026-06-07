@@ -5,17 +5,15 @@ import { BellRing, Check, Minus, Plus, ShoppingBag, Sparkles, X } from "lucide-r
 import { useCart } from "@/components/cart/CartProvider";
 import { getNudges } from "@/lib/nudges";
 import { useT, useLocale, dishName } from "@/lib/i18n";
+import { useMoney } from "@/lib/currency";
 import type { DinerProfile } from "@/lib/types";
-
-function formatPrice(value: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(value);
-}
 
 type SubmitState = { status: "idle" | "sending" | "done" | "error"; detail?: string };
 
 export function CartBar({ slug, tableLabel }: { slug: string; tableLabel: string }) {
   const cart = useCart();
   const t = useT();
+  const formatPrice = useMoney();
   const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");

@@ -81,6 +81,7 @@ export type Restaurant = {
   lng?: number; // venue longitude
   eventCutPct?: number; // restaurant's share of an event referral commission (0..1); defaults to DEFAULT_EVENT_COMMISSION_PCT
   dinerConfig?: DinerQuestionConfig; // cuisine-adaptive diner onboarding questions
+  currency?: string; // ISO 4217 menu currency (e.g. "CNY"); defaults to "GBP"
 };
 
 export type MenuItem = {

@@ -25,7 +25,7 @@ import { DishReels } from "@/components/feed/DishReels";
 import { EventDiscovery } from "@/components/events/EventDiscovery";
 import { useCart } from "@/components/cart/CartProvider";
 import { conflicts } from "@/lib/conflicts";
-import { formatPrice } from "@/lib/format";
+import { useMoney } from "@/lib/currency";
 import { appetiteOptions, defaultProfile, dietOptions, allergens, spiceOptions, adventureOptions } from "@/lib/profile";
 import { heuristicRecommendations } from "@/lib/recommend";
 import { useGroundedChat } from "@/lib/useGroundedChat";
@@ -655,6 +655,7 @@ function MenuExperience({
 
 function DishCard({ dish, profile, onOpen }: { dish: MenuItem; profile: DinerProfile; onOpen: () => void }) {
   const { locale } = useLocale();
+  const money = useMoney();
   const dishConflicts = conflicts(dish, profile);
   return (
     <button className={`dish-card ${dishConflicts.length ? "conflicted" : ""}`} onClick={onOpen}>
@@ -662,7 +663,7 @@ function DishCard({ dish, profile, onOpen }: { dish: MenuItem; profile: DinerPro
       <div className="dish-card-copy">
         <div className="dish-card-top">
           <span>{categoryLabel(dish.category, locale)}</span>
-          <strong>{formatPrice(dish.price)}</strong>
+          <strong>{money(dish.price)}</strong>
         </div>
         <h4>{dishName(dish, locale)}</h4>
         <p>{dishBlurb(dish, locale)}</p>
@@ -690,6 +691,7 @@ function DishDetail({
   onOpenDish: (dish: MenuItem) => void;
 }) {
   const dishConflicts = conflicts(dish, profile);
+  const money = useMoney();
   const chat = useGroundedChat({ restaurant, menu, profile, memoryFacts });
   const cart = useCart();
   const [input, setInput] = useState("");
@@ -724,7 +726,7 @@ function DishDetail({
         <div className="detail-copy">
           <div className="dish-card-top">
             <span>{dish.category}</span>
-            <strong>{formatPrice(dish.price)}</strong>
+            <strong>{money(dish.price)}</strong>
           </div>
           <h2>{dish.name}</h2>
           {dish.nativeName && <p className="native-line">{dish.nativeName}</p>}
@@ -753,7 +755,7 @@ function DishDetail({
 
           <button className="primary-button add-to-order" onClick={addToOrder}>
             {added ? <Check size={18} /> : <Plus size={18} />}
-            {added ? "Added to order" : `Add to order · ${formatPrice(dish.price)}`}
+            {added ? "Added to order" : `Add to order · ${money(dish.price)}`}
           </button>
 
           <div className="detail-ask">
