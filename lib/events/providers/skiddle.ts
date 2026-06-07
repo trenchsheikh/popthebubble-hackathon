@@ -20,6 +20,19 @@ const KIND_TO_EVENTCODE: Record<EventKindTag, string> = {
   other: ""
 };
 
+// Reverse map for classifying Skiddle results by their EventCode (LIVE→music,
+// CLUB→nightlife, …) — otherwise everything falls through to "other" and vibe
+// ranking can't work.
+const EVENTCODE_TO_KIND: Record<string, EventKindTag> = {
+  COMEDY: "comedy",
+  LIVE: "music",
+  CLUB: "nightlife",
+  ARTS: "arts",
+  THEATRE: "arts",
+  FILM: "film",
+  SPORT: "sports"
+};
+
 type SkiddleVenue = {
   name?: string;
   town?: string;
@@ -44,11 +57,6 @@ type SkiddleEvent = {
 };
 
 type SkiddleResponse = { results?: SkiddleEvent[] };
-
-function eventcodeFor(kinds: EventKindTag[]): string | undefined {
-  const codes = [...new Set(kinds.map((kind) => KIND_TO_EVENTCODE[kind]).filter(Boolean))];
-  return codes.length === 1 ? codes[0] : undefined; // one vibe → filter; many/none → all
-}
 
 function parsePrice(value: string | number | undefined): number | undefined {
   if (typeof value === "number") return Number.isFinite(value) && value > 0 ? value : undefined;
@@ -77,11 +85,13 @@ function toOption(event: SkiddleEvent, query: EventQuery): EventOption | null {
   const venueLng = venue?.longitude != null ? Number(venue.longitude) : undefined;
   const genre = event.genres?.[0]?.name;
 
+  const codeKind = event.EventCode ? EVENTCODE_TO_KIND[event.EventCode.toUpperCase()] : undefined;
+
   return {
     id: `skiddle:${id}`,
     provider: "skiddle",
     title,
-    kind: normalizeKind(genre ?? event.EventCode),
+    kind: codeKind ?? normalizeKind(genre ?? event.EventCode),
     venueName: venue?.name ?? venue?.town ?? "Venue TBA",
     address: venue?.town,
     distanceMi: distanceMiles({ lat: query.lat, lng: query.lng }, { lat: venueLat, lng: venueLng }),
@@ -104,41 +114,56 @@ export const skiddleProvider: EventProvider = {
     const apiKey = process.env.SKIDDLE_API_KEY;
     if (!apiKey) return [];
 
-    const params = new URLSearchParams({
-      api_key: apiKey,
-      limit: "20",
-      description: "1",
-      // upcoming only
-      minDate: new Date().toISOString().slice(0, 10)
-    });
-    if (query.lat != null && query.lng != null) {
-      params.set("latitude", String(query.lat));
-      params.set("longitude", String(query.lng));
-      params.set("radius", String(Math.round(query.radiusMi)));
-      params.set("order", "distance");
-    } else if (query.city) {
-      params.set("keyword", query.city);
-    }
-    const eventcode = eventcodeFor(query.kinds);
-    if (eventcode) params.set("eventcode", eventcode);
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    try {
-      const response = await fetch(`${BASE_URL}?${params.toString()}`, {
-        signal: controller.signal,
-        headers: { Accept: "application/json" }
+    function baseParams(): URLSearchParams {
+      const params = new URLSearchParams({
+        api_key: apiKey!,
+        limit: "20",
+        description: "1",
+        minDate: new Date().toISOString().slice(0, 10) // upcoming only
       });
-      if (!response.ok) return [];
-      const data = (await response.json()) as SkiddleResponse;
-      return (data.results ?? [])
-        .map((event) => toOption(event, query))
-        .filter((option): option is EventOption => option !== null);
-    } catch {
-      // One provider failing must never break the aggregate search.
-      return [];
-    } finally {
-      clearTimeout(timer);
+      if (query.lat != null && query.lng != null) {
+        params.set("latitude", String(query.lat));
+        params.set("longitude", String(query.lng));
+        params.set("radius", String(Math.round(query.radiusMi)));
+        params.set("order", "distance");
+      } else if (query.city) {
+        params.set("keyword", query.city);
+      }
+      return params;
     }
+
+    async function fetchOnce(eventcode?: string): Promise<EventOption[]> {
+      const params = baseParams();
+      if (eventcode) params.set("eventcode", eventcode);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      try {
+        const response = await fetch(`${BASE_URL}?${params.toString()}`, {
+          signal: controller.signal,
+          headers: { Accept: "application/json" }
+        });
+        if (!response.ok) return [];
+        const data = (await response.json()) as SkiddleResponse;
+        return (data.results ?? [])
+          .map((event) => toOption(event, query))
+          .filter((option): option is EventOption => option !== null);
+      } catch {
+        return []; // one call failing must never break the aggregate search
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    // When the diner picks vibes, query Skiddle once per matching category (it
+    // only takes one eventcode per call) and merge — so multiple vibes return
+    // relevant events instead of whatever's nearest. No vibes → one broad call.
+    const codes = [...new Set(query.kinds.map((kind) => KIND_TO_EVENTCODE[kind]).filter(Boolean))].slice(0, 4);
+    const batches = codes.length > 0 ? await Promise.all(codes.map((code) => fetchOnce(code))) : [await fetchOnce()];
+
+    const byId = new Map<string, EventOption>();
+    for (const option of batches.flat()) {
+      if (!byId.has(option.id)) byId.set(option.id, option);
+    }
+    return [...byId.values()];
   }
 };

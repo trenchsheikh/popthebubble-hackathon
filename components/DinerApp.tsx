@@ -38,6 +38,8 @@ type Stage = "welcome" | "onboarding" | "menu";
 type MenuTab = "menu" | "chat" | "events";
 
 const profileStorageKey = (slug: string) => `taste-passport:${slug}:profile`;
+const stageStorageKey = (slug: string) => `taste-passport:${slug}:stage`;
+const tabStorageKey = (slug: string) => `taste-passport:${slug}:tab`;
 const dinerStorageKey = "taste-passport:diner-id";
 
 // Atmosphere photography (Hinoki). Single-restaurant for now; move onto the
@@ -104,10 +106,21 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
     window.localStorage.setItem(dinerStorageKey, nextDinerId);
     setDinerId(nextDinerId);
 
-    // Demo: every fresh load starts at the welcome/onboarding home so we can
-    // show the customer-join flow — we don't auto-resume a returning session
-    // straight into the menu. savedProfile still informs the scan analytics.
+    // Resume the session on reload: restore the saved taste profile and the
+    // screen/tab the diner was on, so a refresh keeps their memory + place
+    // (production behaviour). The "Reset" control clears this for a fresh start.
     const savedProfile = window.localStorage.getItem(profileStorageKey(restaurant.slug));
+    if (savedProfile) {
+      try {
+        setProfile(JSON.parse(savedProfile) as DinerProfile);
+        setReturning(true);
+        setStage("menu");
+        const savedTab = window.localStorage.getItem(tabStorageKey(restaurant.slug));
+        if (savedTab === "menu" || savedTab === "chat" || savedTab === "events") setTab(savedTab);
+      } catch {
+        // corrupt profile — fall back to the welcome screen
+      }
+    }
 
     // Diagnostics: record the QR scan (who, where, returning) — best-effort.
     recordEvent({
@@ -118,6 +131,14 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
       returning: Boolean(savedProfile)
     });
   }, [restaurant.slug, restaurant.id, restaurant.tableLabel]);
+
+  // Persist the screen + tab so a reload resumes exactly here.
+  useEffect(() => {
+    if (stage === "menu") {
+      window.localStorage.setItem(stageStorageKey(restaurant.slug), stage);
+      window.localStorage.setItem(tabStorageKey(restaurant.slug), tab);
+    }
+  }, [stage, tab, restaurant.slug]);
 
   // Mubit memory loop: recalls this diner's durable, cross-restaurant memory and
   // exposes learn/consolidate. Best-effort — no-ops when Mubit is unconfigured.
@@ -168,6 +189,8 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
     // Session end — distill this visit into long-term memory before clearing.
     void consolidate();
     window.localStorage.removeItem(profileStorageKey(restaurant.slug));
+    window.localStorage.removeItem(stageStorageKey(restaurant.slug));
+    window.localStorage.removeItem(tabStorageKey(restaurant.slug));
     setProfile(defaultProfile);
     setReturning(false);
     setTab("menu");

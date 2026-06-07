@@ -35,9 +35,11 @@ function score(option: EventOption, query: EventQuery): number {
 }
 
 /**
- * Aggregate nearby events across all configured providers. Real providers run
- * only when their key is set; the mock provider is the sole source otherwise so
- * the demo always returns results. One provider failing never breaks the call.
+ * Aggregate nearby events. Real providers (Ticketmaster/SeatGeek/Skiddle) run
+ * when their key is set; the seeded mock provider is used ONLY as a fallback
+ * when no real provider is configured or none returns any results — so once a
+ * real key is present, diners see real events, never the mock fakes. One
+ * provider failing never breaks the call.
  */
 export async function searchEvents(query: EventQuery): Promise<EventOption[]> {
   const key = cacheKey(query);
@@ -45,10 +47,16 @@ export async function searchEvents(query: EventQuery): Promise<EventOption[]> {
   if (cached) return cached;
 
   const configuredReal = REAL_PROVIDERS.filter((provider) => provider.isConfigured());
-  const providers = configuredReal.length > 0 ? [...configuredReal, mockProvider] : [mockProvider];
 
-  const settled = await Promise.allSettled(providers.map((provider) => provider.search(query)));
-  const all = settled.flatMap((result) => (result.status === "fulfilled" ? result.value : []));
+  let all: EventOption[] = [];
+  if (configuredReal.length > 0) {
+    const settled = await Promise.allSettled(configuredReal.map((provider) => provider.search(query)));
+    all = settled.flatMap((result) => (result.status === "fulfilled" ? result.value : []));
+  }
+  // Fall back to seeded events only when real providers gave us nothing.
+  if (all.length === 0) {
+    all = await mockProvider.search(query);
+  }
 
   const deduped = new Map<string, EventOption>();
   for (const option of all) {
