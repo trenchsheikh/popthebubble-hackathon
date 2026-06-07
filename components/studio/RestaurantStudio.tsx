@@ -128,6 +128,7 @@ export function RestaurantStudio({ ownerEmail }: { ownerEmail?: string } = {}) {
         items?: ExtractedDish[];
         model?: string;
         ms?: number;
+        truncated?: boolean;
         error?: string;
       };
       const items = Array.isArray(data.items) ? data.items : [];
@@ -135,13 +136,18 @@ export function RestaurantStudio({ ownerEmail }: { ownerEmail?: string } = {}) {
       void track("ocr_completed", {
         dishCount: items.length,
         ok: items.length > 0,
+        truncated: Boolean(data.truncated),
         model: data.model,
         ms: data.ms,
         languages: hasNative ? ["native", "en"] : ["en"]
       });
       if (response.ok && items.length > 0) {
         setDraft((current) => ({ ...current, items: items.map(draftItemFromExtracted) }));
-        setExtractNote(`Read ${items.length} dish${items.length > 1 ? "es" : ""} from your menu — review and tweak below.`);
+        setExtractNote(
+          data.truncated
+            ? `Read ${items.length} dishes — that's a big menu, so a few at the end may be missing. Scroll down to check and add any.`
+            : `Read ${items.length} dish${items.length > 1 ? "es" : ""} from your menu — review and tweak below.`
+        );
       } else if (response.ok && data.configured) {
         setExtractNote("We couldn't read dishes from those photos — add them manually below.");
       } else if (response.ok) {

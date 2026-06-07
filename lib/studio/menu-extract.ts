@@ -12,6 +12,7 @@ export type MenuExtractResult = {
   items: ExtractedDish[];
   model?: string; // vision model used (for onboarding telemetry)
   ms?: number; // extraction latency in ms
+  truncated?: boolean; // model hit the output token cap (large menu) — some dishes may be missing
 };
 
 const ALLERGEN_LIST = [...ALLERGEN_KEYS];
@@ -54,24 +55,74 @@ export async function extractMenuItems(images: string[]): Promise<MenuExtractRes
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content }
       ],
-      { model, json: true, temperature: 0, maxTokens: 2000 }
+      // Large menus (60-150 dishes) with full per-dish detail can run well past
+      // a small cap; a high ceiling avoids silently truncating the JSON.
+      { model, json: true, temperature: 0, maxTokens: 8000 }
     );
-    return { configured: true, items: parseItems(response.content), model, ms: Date.now() - startedAt };
+    return {
+      configured: true,
+      items: parseItems(response.content),
+      model,
+      ms: Date.now() - startedAt,
+      truncated: response.finishReason === "length"
+    };
   } catch {
     return { configured: true, items: [], model, ms: Date.now() - startedAt };
   }
 }
 
 function parseItems(raw: string): ExtractedDish[] {
-  let data: unknown;
+  let items: unknown[] | null = null;
   try {
-    data = JSON.parse(raw);
+    const data = JSON.parse(raw);
+    items = Array.isArray(data) ? data : Array.isArray((data as { items?: unknown })?.items) ? (data as { items: unknown[] }).items : null;
   } catch {
-    return [];
+    // Output was likely truncated at the token cap → recover the dishes that
+    // did come through intact rather than discarding the whole menu.
+    items = salvageObjects(raw);
   }
-  const items = Array.isArray(data) ? data : (data as { items?: unknown })?.items;
   if (!Array.isArray(items)) return [];
   return items.map(normalizeDish).filter((dish): dish is ExtractedDish => dish !== null);
+}
+
+// Extract every complete dish {...} object from a (possibly truncated) JSON
+// string by scanning balanced braces. Starts inside the items array so the
+// outer (unclosed) wrapper object isn't counted, and skips a cut-off trailing
+// object — recovering the dishes that did come through.
+function salvageObjects(raw: string): unknown[] {
+  const itemsIdx = raw.indexOf('"items"');
+  const arrStart = raw.indexOf("[", itemsIdx >= 0 ? itemsIdx : 0);
+  const from = arrStart >= 0 ? arrStart + 1 : 0;
+  const out: unknown[] = [];
+  let depth = 0;
+  let start = -1;
+  let inStr = false;
+  let esc = false;
+  for (let i = from; i < raw.length; i += 1) {
+    const ch = raw[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === "\\") esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === "{") {
+      if (depth === 0) start = i;
+      depth += 1;
+    } else if (ch === "}") {
+      depth -= 1;
+      if (depth === 0 && start >= 0) {
+        try {
+          out.push(JSON.parse(raw.slice(start, i + 1)));
+        } catch {
+          /* skip malformed fragment */
+        }
+        start = -1;
+      }
+    }
+  }
+  return out;
 }
 
 function normalizeDish(value: unknown): ExtractedDish | null {
