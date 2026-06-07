@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import QRCode from "qrcode";
 import { listActiveSessions } from "@/lib/sessions/store";
 import { listServiceCalls } from "@/lib/service/store";
 import { listReferrals } from "@/lib/events/store";
@@ -92,6 +93,12 @@ export default async function DashboardPage({
     currency: referrals[0]?.currency ?? "GBP"
   };
 
+  // QR for this restaurant's menu — one app, routed by slug; the QR just encodes
+  // the slug URL. Generated as a data URL so there's no runtime dependency.
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const menuUrl = `${baseUrl}/r/${slug}`;
+  const qrDataUrl = await QRCode.toDataURL(menuUrl, { margin: 1, width: 320 });
+
   return (
     <main className="app-shell dash-shell">
       <section className="dash-screen">
@@ -105,6 +112,18 @@ export default async function DashboardPage({
             </p>
           )}
         </header>
+
+        <section className="dash-panel dash-qr">
+          <div className="dash-qr-copy">
+            <div className="dash-panel-head">
+              <h2>Your menu QR</h2>
+            </div>
+            <p className="dash-sub">Print this on the table. Scanning it opens your live menu.</p>
+            <a className="dash-qr-link" href={menuUrl} target="_blank" rel="noreferrer">{menuUrl}</a>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="dash-qr-img" src={qrDataUrl} alt={`QR code linking to ${menuUrl}`} width={160} height={160} />
+        </section>
 
         <LiveGuests guests={liveGuests} />
         <EventReferrals referrals={referrals} totals={referralTotals} />

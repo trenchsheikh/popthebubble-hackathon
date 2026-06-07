@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { BasicsStep } from "@/components/studio/BasicsStep";
 import { MenuPhotosStep } from "@/components/studio/MenuPhotosStep";
@@ -27,7 +27,7 @@ const STEPS = [
   { title: "Review & publish", subtitle: "One last look before you go live." }
 ] as const;
 
-export function RestaurantStudio() {
+export function RestaurantStudio({ ownerEmail }: { ownerEmail?: string } = {}) {
   const [draft, setDraft] = useState<RestaurantDraft>(emptyDraft);
   const [step, setStep] = useState(0);
   const [publishing, setPublishing] = useState(false);
@@ -36,6 +36,47 @@ export function RestaurantStudio() {
   const [extracting, setExtracting] = useState(false);
   const [extractNote, setExtractNote] = useState<string | null>(null);
   const [extractedOnce, setExtractedOnce] = useState(false);
+
+  // Durable onboarding telemetry. Open a run on mount; each step logs against it.
+  const runIdRef = useRef<string | null>(null);
+  async function track(step: string, detail?: Record<string, unknown>) {
+    const runId = runIdRef.current;
+    if (!runId) return;
+    try {
+      await fetch("/api/studio/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId, step, detail })
+      });
+    } catch {
+      /* telemetry is best-effort */
+    }
+  }
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const response = await fetch("/api/studio/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "start" })
+        });
+        const data = (await response.json()) as { runId?: string };
+        if (active && data.runId) runIdRef.current = data.runId;
+      } catch {
+        /* best-effort */
+      }
+    })();
+    // Prefill the owner handle from their sign-in email to reduce friction.
+    if (ownerEmail) {
+      setDraft((current) => (current.username ? current : { ...current, username: ownerEmail.split("@")[0] }));
+    }
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const categories = useMemo(() => {
     const seen: string[] = [];
@@ -75,14 +116,29 @@ export function RestaurantStudio() {
   async function extractFromMenu() {
     setExtracting(true);
     setExtractNote(null);
+    void track("ocr_started", { photos: draft.menuPhotos.length });
     try {
       const response = await fetch("/api/studio/extract-menu", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ images: draft.menuPhotos.map((photo) => photo.dataUrl) })
       });
-      const data = (await response.json()) as { configured?: boolean; items?: ExtractedDish[]; error?: string };
+      const data = (await response.json()) as {
+        configured?: boolean;
+        items?: ExtractedDish[];
+        model?: string;
+        ms?: number;
+        error?: string;
+      };
       const items = Array.isArray(data.items) ? data.items : [];
+      const hasNative = items.some((dish) => /[㐀-鿿぀-ヿ]/.test(dish.nativeName || ""));
+      void track("ocr_completed", {
+        dishCount: items.length,
+        ok: items.length > 0,
+        model: data.model,
+        ms: data.ms,
+        languages: hasNative ? ["native", "en"] : ["en"]
+      });
       if (response.ok && items.length > 0) {
         setDraft((current) => ({ ...current, items: items.map(draftItemFromExtracted) }));
         setExtractNote(`Read ${items.length} dish${items.length > 1 ? "es" : ""} from your menu — review and tweak below.`);
@@ -102,8 +158,10 @@ export function RestaurantStudio() {
   }
 
   async function goNext() {
-    if (step === MENU_STEP && !extractedOnce && draft.menuPhotos.length > 0) {
-      await extractFromMenu();
+    if (step === 0) void track("basics_completed", { name: draft.name.trim(), cuisine: draft.cuisine.trim() });
+    if (step === MENU_STEP && draft.menuPhotos.length > 0) {
+      void track("photos_uploaded", { count: draft.menuPhotos.length });
+      if (!extractedOnce) await extractFromMenu();
     }
     setStep((current) => Math.min(STEPS.length - 1, current + 1));
   }
@@ -121,7 +179,7 @@ export function RestaurantStudio() {
       const response = await fetch("/api/studio/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(draft)
+        body: JSON.stringify({ ...draft, runId: runIdRef.current })
       });
       const data = await response.json();
       if (!response.ok) {

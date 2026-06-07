@@ -38,6 +38,21 @@ export async function getRestaurantBySlug(slug: string): Promise<Restaurant | nu
   return fromSupabaseRestaurant(data as SupabaseRestaurant);
 }
 
+export async function getRestaurantByOwner(ownerId: string): Promise<Restaurant | null> {
+  const db = createServiceClient();
+  const { data, error } = await db
+    .from('restaurants')
+    .select('*')
+    .eq('owner_id', ownerId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return data ? fromSupabaseRestaurant(data as SupabaseRestaurant) : null;
+}
+
 export async function getRestaurantById(id: string): Promise<Restaurant | null> {
   const db = createServiceClient();
   const { data, error } = await db
@@ -81,28 +96,26 @@ export async function createRestaurant(input: {
 }): Promise<Restaurant> {
   const db = createServiceClient();
 
-  const { data, error } = await db
-    .from('restaurants')
-    .insert([
-      {
-        id: input.id,
-        slug: input.slug,
-        name: input.name,
-        short_name: input.shortName,
-        cuisine: input.cuisine,
-        city: input.city,
-        service_style: input.serviceStyle,
-        table_label: input.tableLabel,
-        welcome_line: input.welcomeLine,
-        tone: input.tone,
-        theme: input.theme,
-        categories: input.categories,
-        owner_id: input.ownerId,
-        exclusion_policy: input.exclusionPolicy || 'none',
-      },
-    ])
-    .select()
-    .single();
+  const row: Record<string, unknown> = {
+    slug: input.slug,
+    name: input.name,
+    short_name: input.shortName,
+    cuisine: input.cuisine,
+    city: input.city,
+    service_style: input.serviceStyle,
+    table_label: input.tableLabel,
+    welcome_line: input.welcomeLine,
+    tone: input.tone,
+    theme: input.theme,
+    categories: input.categories,
+    owner_id: input.ownerId,
+    exclusion_policy: input.exclusionPolicy || 'none',
+  };
+  // Only set id when explicitly provided; otherwise let the column default
+  // (gen_random_uuid()) apply. Passing id: undefined sends an explicit null.
+  if (input.id) row.id = input.id;
+
+  const { data, error } = await db.from('restaurants').insert([row]).select().single();
 
   if (error) throw error;
 
@@ -508,7 +521,17 @@ function fromSupabaseRestaurant(row: SupabaseRestaurant): Restaurant {
     categories: row.categories,
     ownerUsername: undefined,
     exclusionPolicy: row.exclusion_policy,
+    dinerConfig: (row as any).diner_config ?? undefined,
   };
+}
+
+export async function setRestaurantDinerConfig(
+  id: string,
+  config: { allergens: string[]; diets: string[] }
+): Promise<void> {
+  const db = createServiceClient();
+  const { error } = await db.from('restaurants').update({ diner_config: config }).eq('id', id);
+  if (error) throw error;
 }
 
 function fromSupabaseMenuItem(row: SupabaseMenuItem): MenuItem {

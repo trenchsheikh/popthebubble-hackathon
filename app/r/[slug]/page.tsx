@@ -15,16 +15,17 @@ type RestaurantPageProps = {
 export default async function RestaurantPage({ params, searchParams }: RestaurantPageProps) {
   const { slug } = await params;
   const { table } = await searchParams;
-  const restaurant = getRestaurantBySlug(slug);
+  const restaurant = await getRestaurantBySlug(slug);
 
   if (!restaurant) notFound();
 
   const tableLabel = table ? `Table ${table}` : restaurant.tableLabel;
+  const menu = await getMenuForRestaurant(restaurant.id);
 
   return (
     <CartProvider>
       <ServiceProvider slug={restaurant.slug} tableLabel={tableLabel} shortName={restaurant.shortName}>
-        <DinerApp restaurant={{ ...restaurant, tableLabel }} menu={getMenuForRestaurant(restaurant.id)} />
+        <DinerApp restaurant={{ ...restaurant, tableLabel }} menu={menu} />
         <CartBar slug={restaurant.slug} tableLabel={tableLabel} />
         <QrWidget />
         <LanguageToggle />

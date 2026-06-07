@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing restaurant slug" }, { status: 400 });
   }
 
-  const restaurant = getRestaurantBySlug(body.slug);
+  const restaurant = await getRestaurantBySlug(body.slug);
   if (!restaurant) {
     return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
   }

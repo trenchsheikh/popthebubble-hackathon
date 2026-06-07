@@ -11,7 +11,15 @@ const ALLERGEN_LABEL: Record<Allergen, string> = {
   fish: "Fish",
   dairy: "Dairy",
   egg: "Egg",
-  nuts: "Nuts"
+  nuts: "Tree nuts",
+  peanuts: "Peanuts",
+  soy: "Soy",
+  sesame: "Sesame",
+  celery: "Celery",
+  mustard: "Mustard",
+  sulphites: "Sulphites",
+  lupin: "Lupin",
+  molluscs: "Molluscs"
 };
 
 export function Dish3D({

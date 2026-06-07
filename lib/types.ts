@@ -1,6 +1,32 @@
 export type Diet = "none" | "vegetarian" | "vegan" | "pescatarian" | "halal";
 export type Appetite = "light" | "normal" | "feast";
-export type Allergen = "gluten" | "shellfish" | "fish" | "dairy" | "egg" | "nuts";
+// UK FSA's 14 declarable allergens. The original six keys (shellfish≈crustaceans,
+// dairy≈milk, nuts≈tree nuts) are kept as-is for backward compatibility with
+// existing seed/menu data; the rest extend coverage for non-Western cuisines
+// (soy + sesame are pervasive in East-Asian menus and were previously missing).
+export type Allergen =
+  | "gluten"
+  | "shellfish"
+  | "fish"
+  | "dairy"
+  | "egg"
+  | "nuts"
+  | "peanuts"
+  | "soy"
+  | "sesame"
+  | "celery"
+  | "mustard"
+  | "sulphites"
+  | "lupin"
+  | "molluscs";
+
+// Which diner-onboarding questions to surface for a given restaurant — derived
+// from its cuisine + actual menu so a Chinese venue asks about soy/sesame while
+// a pizzeria asks about gluten/dairy. Cached on the restaurant record.
+export type DinerQuestionConfig = {
+  allergens: Allergen[];
+  diets: Diet[];
+};
 
 // Whether a restaurant lets diners ask for ingredient exclusions / swaps.
 // "none" = no changes, "some" = only on dishes flagged per-item, "all" = any dish.
@@ -54,6 +80,7 @@ export type Restaurant = {
   lat?: number; // venue latitude — used to find nearby post-dinner events
   lng?: number; // venue longitude
   eventCutPct?: number; // restaurant's share of an event referral commission (0..1); defaults to DEFAULT_EVENT_COMMISSION_PCT
+  dinerConfig?: DinerQuestionConfig; // cuisine-adaptive diner onboarding questions
 };
 
 export type MenuItem = {

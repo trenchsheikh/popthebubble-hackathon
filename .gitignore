@@ -11,6 +11,10 @@ build/
 *.tsbuildinfo
 
 .DS_Store
+
+# Local scratch assets (test menu photos for onboarding) — not part of the app
+res 1 images/
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

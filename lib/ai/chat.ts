@@ -38,6 +38,7 @@ function dishForModel(dish: MenuItem, input: GroundedChatInput) {
   return {
     id: dish.id,
     name: dish.name,
+    nativeName: dish.nativeName,
     category: dish.category,
     price: dish.price,
     spice: SPICE_LABELS[dish.spice] ?? "mild",

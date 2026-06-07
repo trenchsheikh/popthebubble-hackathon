@@ -17,13 +17,13 @@ type ChatBody = {
 
 export async function POST(request: Request) {
   const body = (await request.json()) as ChatBody;
-  const restaurant = body.restaurant ?? (body.restaurantSlug ? getRestaurantBySlug(body.restaurantSlug) : undefined);
+  const restaurant = body.restaurant ?? (body.restaurantSlug ? await getRestaurantBySlug(body.restaurantSlug) : undefined);
   if (!restaurant) return NextResponse.json({ error: "Unknown restaurant." }, { status: 404 });
   if (!body.question?.trim()) return NextResponse.json({ error: "Question is required." }, { status: 400 });
 
   const response = await groundedChat({
     restaurant,
-    menu: body.menu ?? getMenuForRestaurant(restaurant.id),
+    menu: body.menu ?? (await getMenuForRestaurant(restaurant.id)),
     profile: body.profile ?? defaultProfile,
     memoryFacts: body.memoryFacts ?? [],
     messages: body.messages ?? [],

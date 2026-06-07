@@ -368,6 +368,17 @@ function Onboarding({
   const step = steps[index];
   const finalStep = index === steps.length - 1;
 
+  // Cuisine-adaptive questions: a restaurant only asks about the allergens/diets
+  // relevant to its menu (e.g. a Chinese venue surfaces soy/sesame). Falls back
+  // to the full set when no config has been derived.
+  const config = restaurant.dinerConfig;
+  const dietChoices = config?.diets?.length
+    ? dietOptions.filter((option) => option.key === "none" || config.diets.includes(option.key))
+    : dietOptions;
+  const allergenChoices = config?.allergens?.length
+    ? allergens.filter((allergen) => config.allergens.includes(allergen.key))
+    : allergens;
+
   function next() {
     if (finalStep) onDone(draft);
     else setIndex((current) => current + 1);
@@ -399,7 +410,7 @@ function Onboarding({
 
       {step === "diet" && (
         <div className="choice-grid">
-          {dietOptions.map((option) => (
+          {dietChoices.map((option) => (
             <button
               key={option.key}
               className={`choice ${draft.diet === option.key ? "selected" : ""}`}
@@ -413,7 +424,7 @@ function Onboarding({
 
       {step === "allergies" && (
         <div className="choice-grid">
-          {allergens.map((allergen) => {
+          {allergenChoices.map((allergen) => {
             const selected = draft.allergies.includes(allergen.key);
             return (
               <button

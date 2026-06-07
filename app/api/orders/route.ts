@@ -36,10 +36,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Missing slug, dinerId, profile, or items" }, { status: 400 });
   }
 
-  const restaurant = getRestaurantBySlug(slug);
+  const restaurant = await getRestaurantBySlug(slug);
   if (!restaurant) return NextResponse.json({ ok: false, error: "Unknown restaurant" }, { status: 404 });
 
-  const menu = getMenuForRestaurant(restaurant.id);
+  const menu = await getMenuForRestaurant(restaurant.id);
   const quantities: Record<string, number> = {};
   const requestsByDish: Record<string, string[]> = {};
   const orderedDishes = [];

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { callModel, isVisionConfigured, visionModel, type LlmContentPart } from "@/lib/llm";
+import { ALLERGEN_KEYS } from "@/lib/profile";
 import type { ExtractedDish } from "@/lib/studio/draft";
 import type { Allergen } from "@/lib/types";
 
@@ -9,22 +10,26 @@ export type MenuExtractResult = {
   // wizard keeps manual dish entry instead of showing a "couldn't read" error.
   configured: boolean;
   items: ExtractedDish[];
+  model?: string; // vision model used (for onboarding telemetry)
+  ms?: number; // extraction latency in ms
 };
 
-const VALID_ALLERGENS: Allergen[] = ["gluten", "shellfish", "fish", "dairy", "egg", "nuts"];
+const ALLERGEN_LIST = [...ALLERGEN_KEYS];
 const MAX_IMAGES = 8;
 
 const SYSTEM_PROMPT = `You are a menu digitiser. Read the menu photo(s) and extract every dish you can see.
+The menu may be in any language (e.g. Chinese, Japanese). Read it accurately in its original script.
 Return STRICT JSON of the shape:
-{"items":[{"name":string,"category":string,"price":number|null,"description":string,"spice":0|1|2|3,"vegetarian":boolean,"vegan":boolean,"contains":string[]}]}
+{"items":[{"name":string,"nativeName":string,"category":string,"price":number|null,"description":string,"spice":0|1|2|3,"vegetarian":boolean,"vegan":boolean,"contains":string[]}]}
 Rules:
-- name: the dish name exactly as printed.
-- category: the menu section the dish sits under (e.g. "Starters", "Sushi"). Infer a sensible one if the menu has no headings.
+- nativeName: the dish name EXACTLY as printed in its original script (e.g. "宫保鸡丁"). Empty string only if the menu is already in English.
+- name: an English name for the dish — a translation, or romanisation (e.g. pinyin "Gong Bao Ji Ding") when no clean translation exists. Never leave name empty.
+- category: the menu section the dish sits under, in English (e.g. "Starters", "Sushi"). Infer a sensible one if the menu has no headings.
 - price: the numeric price (no currency symbol), or null if not shown.
 - description: a short diner-facing line taken from the menu (<= 120 chars). Empty string if none.
 - spice: integer 0-3 (0 none, 3 very hot) inferred from wording like "spicy"/"chilli"; default 0.
 - vegetarian / vegan: booleans inferred from the dish; default false when unsure.
-- contains: only values from ["gluten","shellfish","fish","dairy","egg","nuts"], included only when clearly implied; otherwise [].
+- contains: allergens present, only values from ${JSON.stringify(ALLERGEN_LIST)} (note soy & sesame are common in East-Asian dishes), included when clearly implied; otherwise [].
 Only output the JSON object. Never invent dishes that are not visible on the menu.`;
 
 // Read menu photos (base64 data URLs) with a vision model and return structured
@@ -32,8 +37,9 @@ Only output the JSON object. Never invent dishes that are not visible on the men
 // unavailable, the request fails, or the response cannot be parsed.
 export async function extractMenuItems(images: string[]): Promise<MenuExtractResult> {
   const usable = images.filter((url) => typeof url === "string" && url.startsWith("data:image")).slice(0, MAX_IMAGES);
+  const model = visionModel();
   if (!isVisionConfigured() || usable.length === 0) {
-    return { configured: false, items: [] };
+    return { configured: false, items: [], model };
   }
 
   const content: LlmContentPart[] = [
@@ -41,17 +47,18 @@ export async function extractMenuItems(images: string[]): Promise<MenuExtractRes
     ...usable.map((url) => ({ type: "image_url" as const, image_url: { url } }))
   ];
 
+  const startedAt = Date.now();
   try {
     const response = await callModel(
       [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content }
       ],
-      { model: visionModel(), json: true, temperature: 0, maxTokens: 2000 }
+      { model, json: true, temperature: 0, maxTokens: 2000 }
     );
-    return { configured: true, items: parseItems(response.content) };
+    return { configured: true, items: parseItems(response.content), model, ms: Date.now() - startedAt };
   } catch {
-    return { configured: true, items: [] };
+    return { configured: true, items: [], model, ms: Date.now() - startedAt };
   }
 }
 
@@ -85,11 +92,12 @@ function normalizeDish(value: unknown): ExtractedDish | null {
   const spice = ([0, 1, 2, 3] as const).find((level) => level === spiceRaw) ?? 0;
 
   const contains = Array.isArray(record.contains)
-    ? record.contains.filter((entry): entry is Allergen => VALID_ALLERGENS.includes(entry as Allergen))
+    ? record.contains.filter((entry): entry is Allergen => ALLERGEN_KEYS.has(entry as Allergen))
     : [];
 
   return {
     name,
+    nativeName: typeof record.nativeName === "string" ? record.nativeName.trim() : "",
     category: typeof record.category === "string" ? record.category.trim() : "",
     price,
     description: typeof record.description === "string" ? record.description.trim().slice(0, 120) : "",

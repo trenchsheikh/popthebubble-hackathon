@@ -7,7 +7,7 @@ type RouteContext = {
 
 export async function GET(_request: Request, { params }: RouteContext) {
   const { slug } = await params;
-  const restaurant = getRestaurantBySlug(slug);
+  const restaurant = await getRestaurantBySlug(slug);
 
   if (!restaurant) {
     return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
@@ -16,6 +16,6 @@ export async function GET(_request: Request, { params }: RouteContext) {
   return NextResponse.json({
     restaurant,
     categories: restaurant.categories,
-    items: getMenuForRestaurant(restaurant.id)
+    items: await getMenuForRestaurant(restaurant.id)
   });
 }

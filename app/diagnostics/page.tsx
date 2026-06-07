@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import { getDiagnostics } from "@/lib/analytics/store";
 import type { CountedRow } from "@/lib/analytics/types";
+import {
+  listOnboardingRuns,
+  listOnboardingEventsForRuns,
+  type OnboardingEventRow,
+  type OnboardingRunRow
+} from "@/lib/telemetry/onboarding";
+import { getUsageSummary } from "@/lib/telemetry/usage";
 
 export const metadata: Metadata = { title: "Diagnostics · Bubble", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -21,6 +28,15 @@ export default async function DiagnosticsPage({ searchParams }: { searchParams: 
   }
 
   const d = getDiagnostics();
+  // Durable, Supabase-backed evidence (survives restarts; queryable directly).
+  const runs = await listOnboardingRuns(20);
+  const events = await listOnboardingEventsForRuns(runs.map((run) => run.id));
+  const eventsByRun = new Map<string, OnboardingEventRow[]>();
+  for (const event of events) {
+    eventsByRun.set(event.run_id, [...(eventsByRun.get(event.run_id) ?? []), event]);
+  }
+  const usage = await getUsageSummary();
+  const publishedCount = runs.filter((run) => run.status === "published").length;
 
   return (
     <main className="app-shell diag-shell">
@@ -31,6 +47,29 @@ export default async function DiagnosticsPage({ searchParams }: { searchParams: 
           <p className="diag-sub">Live, in-process metrics · {new Date(d.generatedAt).toLocaleString()}</p>
           {!token && <p className="diag-warn">⚠ Unprotected — set <code>DIAGNOSTICS_TOKEN</code> to gate this page in production.</p>}
         </header>
+
+        <section className="diag-onboarding">
+          <h2>Restaurant onboarding · durable evidence (Supabase)</h2>
+          <div className="diag-stats">
+            <Stat label="Onboarding runs" value={runs.length} />
+            <Stat label="Published" value={publishedCount} />
+            <Stat label="Durable usage events" value={usage.total} />
+          </div>
+          {runs.length === 0 ? (
+            <p className="diag-sub">No onboarding runs yet. Sign in as a restaurant and complete the studio flow.</p>
+          ) : (
+            <div className="diag-runs">
+              {runs.map((run) => (
+                <OnboardingRunCard key={run.id} run={run} events={eventsByRun.get(run.id) ?? []} />
+              ))}
+            </div>
+          )}
+          {usage.byType.length > 0 && (
+            <div className="diag-grid">
+              <BarList title="Durable usage by type" rows={usage.byType} />
+            </div>
+          )}
+        </section>
 
         <div className="diag-stats">
           <Stat label="QR scans" value={d.totalScans} />
@@ -72,6 +111,31 @@ export default async function DiagnosticsPage({ searchParams }: { searchParams: 
         </section>
       </section>
     </main>
+  );
+}
+
+function OnboardingRunCard({ run, events }: { run: OnboardingRunRow; events: OnboardingEventRow[] }) {
+  return (
+    <div className="diag-card diag-run">
+      <div className="diag-run-head">
+        <strong>{run.restaurant_id ? "Published" : "In progress"}</strong>
+        <span className={`diag-run-status status-${run.status}`}>{run.status}</span>
+      </div>
+      <p className="diag-sub">
+        {run.dishes_extracted} dishes · {run.images_uploaded} images
+        {run.ocr_model ? ` · ${run.ocr_model.split("/").pop()}` : ""}
+        {run.ocr_ms != null ? ` · OCR ${Math.round(run.ocr_ms / 100) / 10}s` : ""}
+        {run.languages?.length ? ` · ${run.languages.join("/")}` : ""}
+      </p>
+      <ol className="diag-timeline">
+        {events.map((event) => (
+          <li key={event.id}>
+            <span className="diag-time">{new Date(event.at).toLocaleTimeString()}</span>
+            <span className="diag-type">{event.step}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 

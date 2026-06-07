@@ -8,7 +8,7 @@ type KitchenPageProps = {
 
 export default async function KitchenPage({ params }: KitchenPageProps) {
   const { slug } = await params;
-  const restaurant = getRestaurantBySlug(slug);
+  const restaurant = await getRestaurantBySlug(slug);
   if (!restaurant) notFound();
 
   return <KitchenView slug={slug} restaurantName={restaurant.name} />;

@@ -15,10 +15,10 @@ type RecommendationsBody = {
 
 export async function POST(request: Request) {
   const body = (await request.json()) as RecommendationsBody;
-  const restaurant = body.restaurant ?? (body.restaurantSlug ? getRestaurantBySlug(body.restaurantSlug) : undefined);
+  const restaurant = body.restaurant ?? (body.restaurantSlug ? await getRestaurantBySlug(body.restaurantSlug) : undefined);
   if (!restaurant) return NextResponse.json({ error: "Unknown restaurant." }, { status: 404 });
 
-  const menu = body.menu ?? getMenuForRestaurant(restaurant.id);
+  const menu = body.menu ?? (await getMenuForRestaurant(restaurant.id));
   const response = await recommendDishes({
     restaurant,
     menu,

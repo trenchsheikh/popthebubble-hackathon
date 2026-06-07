@@ -4241,3 +4241,246 @@ input:focus-visible {
     display: none;
   }
 }
+
+/* ---------- Landing + owner auth ---------- */
+
+.landing,
+.auth-screen {
+  --bg: #14110f;
+  --surface: #221d19;
+  --surface-raised: #2a2420;
+  --ink: #f2eae0;
+  --muted: #a89a8c;
+  --accent: #d6492f;
+  --accent-2: #e06a45;
+  --gold: #c9a227;
+}
+
+.landing {
+  min-height: 100svh;
+  background: radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--accent, #d6492f) 22%, #14110f), #14110f);
+  color: #f2eae0;
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.25rem;
+}
+
+.landing-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+}
+
+.landing-signin {
+  width: auto;
+  padding-inline: 1.1rem;
+  min-height: 2.5rem;
+}
+
+.landing-hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 5rem;
+  text-align: center;
+}
+
+.landing-hero h1 {
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(3rem, 14vw, 5rem);
+  line-height: 1;
+}
+
+.landing-sub {
+  color: #a89a8c;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.landing-cta {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.landing-cta .primary-button,
+.landing-cta .ghost-button {
+  width: auto;
+  padding-inline: 1.4rem;
+}
+
+.auth-screen {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--accent, #d6492f) 20%, #14110f), #14110f);
+  color: #f2eae0;
+}
+
+.auth-card {
+  width: min(100%, 26rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.75rem 1.5rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(244, 239, 231, 0.12);
+  background: color-mix(in srgb, #221d19 94%, black 6%);
+  box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.4);
+}
+
+.auth-card h1 {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 2rem;
+}
+
+.auth-sub {
+  color: #a89a8c;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.auth-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(244, 239, 231, 0.16);
+  background: #14110f;
+  color: #f2eae0;
+}
+
+.auth-field input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.auth-error {
+  color: #ffb3a0;
+  font-size: 0.85rem;
+}
+
+.auth-link {
+  background: none;
+  border: none;
+  color: #a89a8c;
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
+
+.dash-qr {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dash-qr-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dash-qr-link {
+  color: var(--gold);
+  word-break: break-all;
+  font-size: 0.85rem;
+}
+
+.dash-qr-img {
+  flex: none;
+  width: 160px;
+  height: 160px;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 8px;
+}
+
+@media (max-width: 540px) {
+  .dash-qr {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}
+
+/* ---------- Onboarding diagnostics (durable evidence) ---------- */
+
+.diag-onboarding {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.diag-runs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.85rem;
+}
+
+.diag-run-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.diag-run-status {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.diag-run-status.status-published {
+  color: #cae5a6;
+  background: rgba(92, 128, 67, 0.18);
+}
+
+.diag-timeline {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.diag-timeline li {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.diag-timeline .diag-time {
+  color: var(--muted, #a89a8c);
+  min-width: 5.5rem;
+}
+
+.diag-timeline .diag-type {
+  color: var(--ink, #f2eae0);
+}

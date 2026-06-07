@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   if (!body.slug) {
     return NextResponse.json({ ok: false, error: "Missing slug" }, { status: 400 });
   }
-  const restaurant = getRestaurantBySlug(body.slug);
+  const restaurant = await getRestaurantBySlug(body.slug);
   if (!restaurant) {
     return NextResponse.json({ ok: false, error: "Unknown restaurant" }, { status: 404 });
   }

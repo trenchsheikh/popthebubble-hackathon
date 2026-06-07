@@ -70,8 +70,11 @@ export function ProductEditor({
       </div>
 
       <div className="product-grid">
-        <Field label="Dish name" required>
+        <Field label="Dish name (English)" required>
           <input value={item.name} onChange={(event) => onChange({ name: event.target.value })} placeholder="e.g. Spicy Tuna Roll" />
+        </Field>
+        <Field label="Original name" hint="As printed, e.g. 宫保鸡丁 — shown alongside the English name">
+          <input value={item.nativeName} onChange={(event) => onChange({ nativeName: event.target.value })} placeholder="e.g. 宫保鸡丁" />
         </Field>
         <Field label="Section" required hint="Groups the dish on the menu">
           <input

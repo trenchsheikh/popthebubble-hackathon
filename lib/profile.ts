@@ -6,8 +6,19 @@ export const allergens: { key: Allergen; label: string }[] = [
   { key: "fish", label: "Fish" },
   { key: "dairy", label: "Dairy" },
   { key: "egg", label: "Egg" },
-  { key: "nuts", label: "Nuts" }
+  { key: "nuts", label: "Tree nuts" },
+  { key: "peanuts", label: "Peanuts" },
+  { key: "soy", label: "Soy" },
+  { key: "sesame", label: "Sesame" },
+  { key: "celery", label: "Celery" },
+  { key: "mustard", label: "Mustard" },
+  { key: "sulphites", label: "Sulphites" },
+  { key: "lupin", label: "Lupin" },
+  { key: "molluscs", label: "Molluscs" }
 ];
+
+// Fast lookup for validating/filtering allergen tokens.
+export const ALLERGEN_KEYS = new Set<Allergen>(allergens.map((a) => a.key));
 
 export const defaultProfile: DinerProfile = {
   diet: "none",

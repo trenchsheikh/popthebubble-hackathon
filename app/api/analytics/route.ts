@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { recordEvent } from "@/lib/analytics/store";
+import { recordUsageEvent } from "@/lib/telemetry/usage";
 import type { AnalyticsEventInput } from "@/lib/analytics/types";
 
 const KNOWN_TYPES = new Set([
@@ -28,6 +29,8 @@ export async function POST(request: Request) {
   const userAgent = headers.get("user-agent") ?? "";
   const device: "mobile" | "desktop" = /mobile|android|iphone|ipad|ipod/i.test(userAgent) ? "mobile" : "desktop";
 
+  const decodedCity = city ? decodeURIComponent(city) : undefined;
+
   recordEvent({
     type: body.type,
     dinerId: body.dinerId,
@@ -38,7 +41,18 @@ export async function POST(request: Request) {
     path: body.path,
     metadata: body.metadata,
     country,
-    city: city ? decodeURIComponent(city) : undefined,
+    city: decodedCity,
+    device
+  });
+
+  // Durable mirror to Supabase (survives restarts; queryable). Best-effort.
+  await recordUsageEvent({
+    type: body.type,
+    restaurantId: body.restaurantId,
+    dinerId: body.dinerId,
+    metadata: { ...(body.metadata ?? {}), table: body.table, returning: body.returning },
+    country,
+    city: decodedCity,
     device
   });
 

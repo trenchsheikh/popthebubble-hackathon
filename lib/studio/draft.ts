@@ -1,10 +1,12 @@
 import type { Allergen, ExclusionPolicy, MenuItem, MenuPhoto, Restaurant, Theme } from "@/lib/types";
+import { allergens } from "@/lib/profile";
 
 // A single dish as captured in the onboarding form. Prices stay as strings
 // while editing and are parsed at publish time.
 export type DraftMenuItem = {
   id: string;
   name: string;
+  nativeName: string; // original-language name as printed (e.g. 中文); "" if none
   category: string;
   price: string;
   spice: 0 | 1 | 2 | 3;
@@ -29,14 +31,8 @@ export type RestaurantDraft = {
   items: DraftMenuItem[];
 };
 
-export const ALLERGEN_OPTIONS: { key: Allergen; label: string }[] = [
-  { key: "gluten", label: "Gluten" },
-  { key: "shellfish", label: "Shellfish" },
-  { key: "fish", label: "Fish" },
-  { key: "dairy", label: "Dairy" },
-  { key: "egg", label: "Egg" },
-  { key: "nuts", label: "Nuts" }
-];
+// Single source of truth for the allergen vocabulary (the full UK FSA set).
+export const ALLERGEN_OPTIONS: { key: Allergen; label: string }[] = allergens;
 
 export const SPICE_LABELS = ["No heat", "Mild", "Medium", "Hot"] as const;
 
@@ -81,6 +77,7 @@ export function emptyDraftItem(): DraftMenuItem {
   return {
     id: draftId("item"),
     name: "",
+    nativeName: "",
     category: "",
     price: "",
     spice: 0,
@@ -99,6 +96,7 @@ export function emptyDraftItem(): DraftMenuItem {
 // reference it without importing the server-only extraction module.
 export type ExtractedDish = {
   name: string;
+  nativeName: string; // original-language name as printed (e.g. 中文); "" if none
   category: string;
   price: number | null;
   description: string;
@@ -118,6 +116,7 @@ export function draftItemFromExtracted(dish: ExtractedDish): DraftMenuItem {
   return {
     id: draftId("item"),
     name: dish.name?.trim() ?? "",
+    nativeName: dish.nativeName?.trim() ?? "",
     category: dish.category?.trim() ?? "",
     price: dish.price != null && Number.isFinite(dish.price) ? String(dish.price) : "",
     spice,
@@ -190,6 +189,7 @@ export function draftToEntities(
       id: `${slug}-${slugify(item.name) || `dish-${index + 1}`}`,
       restaurantId,
       name: item.name.trim(),
+      nativeName: item.nativeName.trim() || undefined,
       category: item.category.trim(),
       price: Number(item.price) || 0,
       spice: item.spice,
