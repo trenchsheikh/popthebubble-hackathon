@@ -42,10 +42,10 @@ const stageStorageKey = (slug: string) => `taste-passport:${slug}:stage`;
 const tabStorageKey = (slug: string) => `taste-passport:${slug}:tab`;
 const dinerStorageKey = "taste-passport:diner-id";
 
-// Demo mode: false → every load starts at the welcome screen so the full
-// customer-join + memory flow can be shown from scratch. Flip to true for
-// production so a reload resumes the diner's session in place.
-const RESUME_SESSION = false;
+// When true, a device that's already onboarded resumes straight to the menu
+// (remembered — skips the questions); a new/incognito device gets the full
+// onboarding flow. This is the memory-aware "returning diner" behaviour.
+const RESUME_SESSION = true;
 
 // Atmosphere photography (Hinoki). Single-restaurant for now; move onto the
 // restaurant record when the platform goes multi-venue.
