@@ -42,6 +42,11 @@ const stageStorageKey = (slug: string) => `taste-passport:${slug}:stage`;
 const tabStorageKey = (slug: string) => `taste-passport:${slug}:tab`;
 const dinerStorageKey = "taste-passport:diner-id";
 
+// Demo mode: false → every load starts at the welcome screen so the full
+// customer-join + memory flow can be shown from scratch. Flip to true for
+// production so a reload resumes the diner's session in place.
+const RESUME_SESSION = false;
+
 // Atmosphere photography (Hinoki). Single-restaurant for now; move onto the
 // restaurant record when the platform goes multi-venue.
 const ambiance = {
@@ -110,7 +115,7 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
     // screen/tab the diner was on, so a refresh keeps their memory + place
     // (production behaviour). The "Reset" control clears this for a fresh start.
     const savedProfile = window.localStorage.getItem(profileStorageKey(restaurant.slug));
-    if (savedProfile) {
+    if (RESUME_SESSION && savedProfile) {
       try {
         setProfile(JSON.parse(savedProfile) as DinerProfile);
         setReturning(true);
@@ -132,9 +137,9 @@ export function DinerApp({ restaurant, menu }: { restaurant: Restaurant; menu: M
     });
   }, [restaurant.slug, restaurant.id, restaurant.tableLabel]);
 
-  // Persist the screen + tab so a reload resumes exactly here.
+  // Persist the screen + tab so a reload resumes exactly here (production only).
   useEffect(() => {
-    if (stage === "menu") {
+    if (RESUME_SESSION && stage === "menu") {
       window.localStorage.setItem(stageStorageKey(restaurant.slug), stage);
       window.localStorage.setItem(tabStorageKey(restaurant.slug), tab);
     }
